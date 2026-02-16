@@ -4,6 +4,7 @@ from enum import Enum, auto
 import pygame
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE
 from bit_flippers.combat import create_enemy_combatant, CombatEntity
+from bit_flippers.items import ITEM_REGISTRY
 
 
 class Phase(Enum):
@@ -13,15 +14,17 @@ class Phase(Enum):
     VICTORY = auto()
     DEFEAT = auto()
     FLED = auto()
+    ITEM_SELECT = auto()
 
 
-MENU_OPTIONS = ["Attack", "Defend", "Flee"]
+MENU_OPTIONS = ["Attack", "Defend", "Item", "Flee"]
 
 
 class CombatState:
-    def __init__(self, game, enemy_data, overworld):
+    def __init__(self, game, enemy_data, overworld, inventory=None):
         self.game = game
         self.overworld = overworld  # reference to overworld for HP sync
+        self.inventory = inventory
         self.enemy = create_enemy_combatant(enemy_data)
 
         # Build a lightweight player combatant using overworld HP
@@ -40,6 +43,11 @@ class CombatState:
         self.phase = Phase.CHOOSING
         self.menu_index = 0
         self.defending = False
+        self.defense_buff = 0  # temporary defense boost from Iron Plating
+
+        # Item selection state
+        self.item_list: list[str] = []
+        self.item_index = 0
 
         # Animation timers
         self.phase_timer = 0.0
@@ -71,6 +79,15 @@ class CombatState:
                 self.menu_index = (self.menu_index + 1) % len(MENU_OPTIONS)
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 self._execute_player_action(MENU_OPTIONS[self.menu_index])
+        elif self.phase == Phase.ITEM_SELECT:
+            if event.key == pygame.K_ESCAPE:
+                self.phase = Phase.CHOOSING
+            elif event.key == pygame.K_UP:
+                self.item_index = (self.item_index - 1) % len(self.item_list)
+            elif event.key == pygame.K_DOWN:
+                self.item_index = (self.item_index + 1) % len(self.item_list)
+            elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                self._use_combat_item(self.item_list[self.item_index])
         elif self.phase in (Phase.VICTORY, Phase.DEFEAT, Phase.FLED):
             if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 self._finish_combat()
@@ -100,6 +117,18 @@ class CombatState:
             self.phase = Phase.PLAYER_ATTACK
             self.phase_timer = 0.4
 
+        elif action == "Item":
+            if self.inventory is None:
+                self.message = "No items!"
+                return
+            consumables = self.inventory.get_consumables()
+            if not consumables:
+                self.message = "No items!"
+                return
+            self.item_list = consumables
+            self.item_index = 0
+            self.phase = Phase.ITEM_SELECT
+
         elif action == "Flee":
             if random.random() < 0.5:
                 self.phase = Phase.FLED
@@ -109,6 +138,41 @@ class CombatState:
                 self.message = "Couldn't escape!"
                 self.phase = Phase.PLAYER_ATTACK
                 self.phase_timer = 0.6
+
+    def _use_combat_item(self, item_name):
+        item = ITEM_REGISTRY.get(item_name)
+        if not item:
+            return
+
+        self.inventory.remove(item_name)
+        self.defending = False
+
+        if item.effect_type == "heal":
+            from bit_flippers.settings import PLAYER_MAX_HP
+            old_hp = self.player.hp
+            self.player.hp = min(self.player.max_hp, self.player.hp + item.effect_value)
+            healed = self.player.hp - old_hp
+            self.message = f"Used {item_name}! Restored {healed} HP."
+        elif item.effect_type == "damage":
+            self.enemy.hp = max(0, self.enemy.hp - item.effect_value)
+            self.flash_target = "enemy"
+            self.flash_timer = 0.3
+            self.damage_text = f"-{item.effect_value}"
+            self.damage_text_timer = 1.0
+            self.damage_text_pos = (self.enemy_pos[0] + TILE_SIZE // 2, self.enemy_pos[1] - 10)
+            self.message = f"Used {item_name}! Dealt {item.effect_value} damage."
+            if not self.enemy.is_alive:
+                self.phase = Phase.VICTORY
+                self.message = f"Defeated {self.enemy.name}!"
+                self.message_timer = 0.0
+                return
+        elif item.effect_type == "buff_defense":
+            self.defense_buff += item.effect_value
+            self.player.defense += item.effect_value
+            self.message = f"Used {item_name}! Defense +{item.effect_value}."
+
+        self.phase = Phase.PLAYER_ATTACK
+        self.phase_timer = 0.6
 
     def _do_enemy_attack(self):
         raw_damage = max(1, self.enemy.attack - self.player.defense + random.randint(-1, 1))
@@ -130,6 +194,8 @@ class CombatState:
             self.phase_timer = 0.6
 
     def _finish_combat(self):
+        # Remove temporary defense buff before syncing
+        self.player.defense -= self.defense_buff
         # Sync HP back to overworld
         self.overworld.player_hp = self.player.hp
         # Notify overworld of victory so scripted enemies can be removed
@@ -194,6 +260,9 @@ class CombatState:
         # Action menu (only during CHOOSING phase)
         if self.phase == Phase.CHOOSING:
             self._draw_menu(screen)
+        elif self.phase == Phase.ITEM_SELECT:
+            self._draw_menu(screen)
+            self._draw_item_submenu(screen)
         elif self.phase in (Phase.VICTORY, Phase.DEFEAT, Phase.FLED):
             prompt = self.font_small.render("[SPACE to continue]", True, (180, 180, 180))
             screen.blit(
@@ -234,9 +303,36 @@ class CombatState:
 
     def _draw_menu(self, screen):
         menu_x = SCREEN_WIDTH // 2 - 60
-        menu_y = SCREEN_HEIGHT - 100
+        menu_y = SCREEN_HEIGHT - 120
         for i, option in enumerate(MENU_OPTIONS):
             color = (255, 255, 100) if i == self.menu_index else (200, 200, 200)
             prefix = "> " if i == self.menu_index else "  "
             text = self.font.render(f"{prefix}{option}", True, color)
             screen.blit(text, (menu_x, menu_y + i * 28))
+
+    def _draw_item_submenu(self, screen):
+        box_x = SCREEN_WIDTH // 2 + 60
+        box_y = SCREEN_HEIGHT - 140
+        row_h = 24
+        padding = 8
+
+        # Background box
+        box_h = len(self.item_list) * row_h + padding * 2
+        box_w = 180
+        bg = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+        bg.fill((20, 20, 40, 220))
+        screen.blit(bg, (box_x, box_y))
+        pygame.draw.rect(screen, (180, 180, 180), (box_x, box_y, box_w, box_h), 1)
+
+        for i, name in enumerate(self.item_list):
+            count = self.inventory.get_count(name)
+            is_sel = i == self.item_index
+            color = (255, 220, 100) if is_sel else (200, 200, 200)
+            prefix = "> " if is_sel else "  "
+            label = f"{prefix}{name} x{count}"
+            text = self.font_small.render(label, True, color)
+            screen.blit(text, (box_x + padding, box_y + padding + i * row_h))
+
+        # Hint
+        hint = self.font_small.render("[ESC] Cancel", True, (120, 120, 120))
+        screen.blit(hint, (box_x, box_y + box_h + 4))

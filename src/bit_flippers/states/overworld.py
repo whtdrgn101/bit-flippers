@@ -9,11 +9,14 @@ from bit_flippers.settings import (
     PLAYER_MAX_HP,
     RANDOM_ENCOUNTER_CHANCE,
     MIN_STEPS_BETWEEN_ENCOUNTERS,
+    SCRAP_BONUS_ITEM_CHANCE,
+    PICKUP_MESSAGE_DURATION,
 )
 from bit_flippers.camera import Camera
-from bit_flippers.tilemap import TileMap, DIRT
+from bit_flippers.tilemap import TileMap, DIRT, SCRAP
 from bit_flippers.sprites import create_placeholder_player, create_placeholder_npc
 from bit_flippers.npc import make_npc
+from bit_flippers.items import Inventory
 
 MOVE_COOLDOWN = 0.15  # seconds between steps
 
@@ -48,6 +51,13 @@ class OverworldState:
 
         # Player HP (persists across combats)
         self.player_hp = PLAYER_MAX_HP
+
+        # Inventory
+        self.inventory = Inventory()
+
+        # Pickup notification
+        self.pickup_message = ""
+        self.pickup_message_timer = 0.0
 
         # Random encounter tracking
         self.steps_since_encounter = 0
@@ -137,6 +147,9 @@ class OverworldState:
                 self.move_timer = 0.0
             elif event.key == pygame.K_SPACE:
                 self._try_interact()
+            elif event.key == pygame.K_ESCAPE:
+                from bit_flippers.states.inventory import InventoryState
+                self.game.push_state(InventoryState(self.game, self.inventory, self))
         elif event.type == pygame.KEYUP:
             if event.key == self.held_direction:
                 self.held_direction = None
@@ -181,7 +194,7 @@ class OverworldState:
 
         self._current_scripted_enemy = enemy_npc
         self.game.push_state(
-            CombatState(self.game, enemy_npc["enemy_data"], self)
+            CombatState(self.game, enemy_npc["enemy_data"], self, self.inventory)
         )
 
     def on_combat_victory(self):
@@ -201,7 +214,7 @@ class OverworldState:
         # Pick a random weak enemy for random encounters
         enemy_data = random.choice([ENEMY_TYPES["Scrap Rat"], ENEMY_TYPES["Scrap Rat"], ENEMY_TYPES["Rust Golem"]])
         self.steps_since_encounter = 0
-        self.game.push_state(CombatState(self.game, enemy_data, self))
+        self.game.push_state(CombatState(self.game, enemy_data, self, self.inventory))
 
     def _npc_at(self, tx, ty):
         """Check if any NPC (friendly or enemy) occupies the given tile."""
@@ -214,6 +227,12 @@ class OverworldState:
         return False
 
     def update(self, dt):
+        # Pickup message timer
+        if self.pickup_message_timer > 0:
+            self.pickup_message_timer -= dt
+            if self.pickup_message_timer <= 0:
+                self.pickup_message = ""
+
         # Handle held-key repeat movement
         if self.held_direction is not None:
             self.move_timer += dt
@@ -316,6 +335,11 @@ class OverworldState:
         hp_text = self.hud_font.render(f"{self.player_hp}/{PLAYER_MAX_HP}", True, (255, 255, 255))
         screen.blit(hp_text, (bar_x + bar_width + 6, y + 1))
 
+        # Pickup notification
+        if self.pickup_message:
+            msg_surf = self.hud_font.render(self.pickup_message, True, (255, 220, 100))
+            screen.blit(msg_surf, (SCREEN_WIDTH // 2 - msg_surf.get_width() // 2, 50))
+
     def _try_move(self, key):
         dx, dy, facing = DIRECTION_MAP[key]
         self.player_facing = facing
@@ -327,6 +351,19 @@ class OverworldState:
             self.player_x = new_x
             self.player_y = new_y
             self.steps_since_encounter += 1
+
+            # Scrap pickup
+            if self.tilemap.grid[new_y][new_x] == SCRAP:
+                self.tilemap.grid[new_y][new_x] = DIRT
+                self.inventory.add("Scrap Metal")
+                msg = "Picked up Scrap Metal!"
+                # 25% chance for a bonus consumable
+                if random.random() < SCRAP_BONUS_ITEM_CHANCE:
+                    bonus = random.choice(["Repair Kit", "Voltage Spike", "Iron Plating"])
+                    self.inventory.add(bonus)
+                    msg += f" Also found {bonus}!"
+                self.pickup_message = msg
+                self.pickup_message_timer = PICKUP_MESSAGE_DURATION
 
             # Random encounter check on DIRT tiles
             if (
