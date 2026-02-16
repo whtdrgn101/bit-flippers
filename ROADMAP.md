@@ -63,7 +63,52 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Dynamic max HP used across combat and inventory
 
 ## Milestone 9: Map Transitions + Multiple Areas
+**Status: Done**
+- Door tile type (DOOR=3) with wooden door tileset sprite
+- Map definition system (`maps.py`): DoorDef, NPCDef, EnemyNPCDef, MapDef dataclasses
+- MAP_REGISTRY with three maps:
+  - Overworld (40x30) — original map with two door exits
+  - Tinker's Shop (12x10) — interior with shopkeeper NPC, no random encounters
+  - Scrap Cave (20x15) — tight corridors, darker dirt, harder encounter table
+- Per-map persistence (collected scrap and defeated enemies survive map transitions)
+- Per-map encounter tables and encounter chances
+- Tile color override support (cave uses darker dirt palette)
+- Map name displayed in HUD when not on overworld
+
+## Milestone 10: Character Stats + Character Screen
+**Status: Done**
+- PlayerStats dataclass with seven allocatable stats: Max HP, Max SP, Strength, Dexterity, Resilience, Constitution, Intelligence
+- Stat point allocation on level-up: 2 points per level, 4 points every 10th level
+- Character screen UI (`C` key) with cursor navigation and point allocation
+- Stats influence combat:
+  - Strength → attack damage (effective_attack = 3 + STR)
+  - Dexterity → hit/miss chance (base 85%, ±3% per dex difference, clamped 30–99%)
+  - Resilience → defense (effective_defense = RES)
+  - Constitution → debuff duration reduction
+  - Intelligence → skill damage multiplier
+- Enemy dexterity values: Scrap Rat (4), Rust Golem (2), Volt Wraith (7)
+- SP bar displayed in overworld HUD and combat
+- Unspent points indicator in HUD with `[C]` hint
+- JSON save/load for player stats (`player_stats.json`)
+- Auto-save after combat rewards; save on character screen close
+- Removed deprecated flat constants (PLAYER_ATTACK, PLAYER_DEFENSE, PLAYER_MAX_HP, LEVEL_UP_HP_BONUS)
+
+## Milestone 11: Skills System + Skill Tree
 **Status: Not started**
-- Door/portal tiles loading different maps
-- Interior maps (buildings, caves)
-- State persistence (collected items, defeated NPCs)
+- Skill data model (name, SP cost, effect, stat scaling, tree position)
+- Skill tree UI with unlock paths and prerequisites
+- Initial skill set themed around scavenging and improvised combat:
+  - Use scrap and environmental resources for special attacks
+  - Craft-on-the-fly abilities (e.g., shrapnel blast, jury-rig shield)
+- "Skills" option added to combat action menu (alongside Attack, Defend, Item, Flee)
+- Skills consume SP; SP regeneration or restoration mechanics
+- Skill unlock points earned on level-up or via story progression
+- Intelligence stat scales skill damage/effectiveness
+
+## Milestone 12: Save Game System
+**Status: Not started**
+- Full game state save and load (player stats, inventory, map progress, defeated NPCs)
+- JSON format for all save data (easy to parse, edit, and tweak)
+- Save/load accessible from pause menu
+- Multiple save slots or auto-save support
+- Graceful handling of missing or corrupted save files

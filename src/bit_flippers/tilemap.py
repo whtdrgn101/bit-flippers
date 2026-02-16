@@ -1,16 +1,18 @@
 import os
 
 import pygame
-from bit_flippers.settings import TILE_SIZE, COLOR_DIRT, COLOR_WALL, COLOR_SCRAP
+from bit_flippers.settings import TILE_SIZE, COLOR_DIRT, COLOR_WALL, COLOR_SCRAP, COLOR_DOOR
 
 DIRT = 0
 WALL = 1
 SCRAP = 2
+DOOR = 3
 
 TILE_COLORS = {
     DIRT: COLOR_DIRT,
     WALL: COLOR_WALL,
     SCRAP: COLOR_SCRAP,
+    DOOR: COLOR_DOOR,
 }
 
 _ASSET_DIR = os.path.normpath(
@@ -29,10 +31,13 @@ def _load_tile_surfaces():
         return None
 
     surfaces = {}
-    # 3 columns: DIRT=0, WALL=1, SCRAP=2
-    for col, tile_id in enumerate((DIRT, WALL, SCRAP)):
+    # 4 columns: DIRT=0, WALL=1, SCRAP=2, DOOR=3
+    for col, tile_id in enumerate((DIRT, WALL, SCRAP, DOOR)):
+        src_x = col * TILE_SIZE
+        if src_x + TILE_SIZE > sheet.get_width():
+            break
         frame = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
-        frame.blit(sheet, (0, 0), (col * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE))
+        frame.blit(sheet, (0, 0), (src_x, 0, TILE_SIZE, TILE_SIZE))
         surfaces[tile_id] = frame
     return surfaces
 
@@ -73,13 +78,16 @@ DEFAULT_MAP = [
 
 
 class TileMap:
-    def __init__(self, grid=None):
+    def __init__(self, grid=None, tile_colors_override=None):
         self.grid = grid if grid is not None else DEFAULT_MAP
         self.height_tiles = len(self.grid)
         self.width_tiles = len(self.grid[0])
         self.width_px = self.width_tiles * TILE_SIZE
         self.height_px = self.height_tiles * TILE_SIZE
         self.tile_surfaces = _load_tile_surfaces()
+        self._tile_colors = dict(TILE_COLORS)
+        if tile_colors_override:
+            self._tile_colors.update(tile_colors_override)
 
     def is_walkable(self, tile_x, tile_y):
         if 0 <= tile_x < self.width_tiles and 0 <= tile_y < self.height_tiles:
@@ -103,5 +111,5 @@ class TileMap:
                 if self.tile_surfaces and tile in self.tile_surfaces:
                     screen.blit(self.tile_surfaces[tile], screen_rect)
                 else:
-                    color = TILE_COLORS.get(tile, COLOR_DIRT)
+                    color = self._tile_colors.get(tile, COLOR_DIRT)
                     pygame.draw.rect(screen, color, screen_rect)

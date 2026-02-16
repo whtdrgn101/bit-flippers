@@ -9,15 +9,11 @@ COLOR_DIRT = (139, 90, 43)
 COLOR_WALL = (105, 105, 105)
 COLOR_SCRAP = (204, 180, 60)
 COLOR_PLAYER = (50, 180, 220)
+COLOR_DOOR = (80, 60, 40)
 COLOR_BLACK = (0, 0, 0)
 
 # Player movement
 PLAYER_MOVE_SPEED = 320  # pixels/sec for visual interpolation (~100ms per tile)
-
-# Player combat stats
-PLAYER_MAX_HP = 30
-PLAYER_ATTACK = 8
-PLAYER_DEFENSE = 3
 
 # Dialogue
 DIALOGUE_CHARS_PER_SEC = 30
@@ -37,6 +33,6 @@ COLOR_ITEM_HIGHLIGHT = (255, 220, 100)
 
 # Progression
 BASE_XP = 20
-LEVEL_UP_HP_BONUS = 0.02
 COLOR_XP_BAR = (60, 120, 220)
+COLOR_SP_BAR = (80, 140, 220)
 COLOR_MONEY_TEXT = (220, 200, 100)

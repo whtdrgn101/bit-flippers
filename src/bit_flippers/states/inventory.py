@@ -69,12 +69,12 @@ class InventoryState:
             return
 
         if item.effect_type == "heal":
-            if self.overworld.player_hp >= self.overworld.player_max_hp:
+            if self.overworld.stats.current_hp >= self.overworld.stats.max_hp:
                 self.message = "HP is already full!"
                 self.message_timer = 1.5
                 return
-            self.overworld.player_hp = min(
-                self.overworld.player_max_hp, self.overworld.player_hp + item.effect_value
+            self.overworld.stats.current_hp = min(
+                self.overworld.stats.max_hp, self.overworld.stats.current_hp + item.effect_value
             )
             self.inventory.remove(item_name)
             self.message = f"Used {item_name}! HP restored."

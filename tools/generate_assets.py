@@ -524,7 +524,7 @@ def generate_enemy_volt_wraith():
 # ---------------------------------------------------------------------------
 
 def generate_tileset():
-    sheet = pygame.Surface((TILE * 3, TILE), pygame.SRCALPHA)
+    sheet = pygame.Surface((TILE * 4, TILE), pygame.SRCALPHA)
 
     # DIRT tile — noise texture
     dirt_base = (139, 90, 43)
@@ -573,42 +573,132 @@ def generate_tileset():
                     highlight_px(wall_frame, px, py, brick_color, 20)
     sheet.blit(wall_frame, (TILE, 0))
 
-    # SCRAP tile — metallic shine
-    scrap_base = (204, 180, 60)
+    # SCRAP tile — pile of scrap metal on dirt background
     scrap_frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
     rng3 = random.Random(300)
+
+    # Dirt background (matches dirt tile style)
     for x in range(TILE):
         for y in range(TILE):
             variation = rng3.randint(-12, 12)
             c = (
-                max(0, min(255, scrap_base[0] + variation)),
-                max(0, min(255, scrap_base[1] + variation)),
-                max(0, min(255, scrap_base[2] + variation)),
+                max(0, min(255, dirt_base[0] + variation)),
+                max(0, min(255, dirt_base[1] + variation)),
+                max(0, min(255, dirt_base[2] + variation)),
             )
             scrap_frame.set_at((x, y), c)
 
-    # Diagonal metallic shine lines
-    for offset in range(0, TILE * 2, 8):
-        for i in range(3):
-            x = offset - TILE + i
-            y = i
-            while x < TILE and y < TILE:
-                if 0 <= x < TILE and 0 <= y < TILE:
-                    highlight_px(scrap_frame, x, y, scrap_base, 45)
-                x += 1
-                y += 1
+    # Scrap pile — several overlapping metal pieces
+    metal_dark = (130, 115, 50)
+    metal_mid = (180, 160, 60)
+    metal_light = (220, 200, 90)
+    rust_color = (160, 90, 40)
 
-    # Metallic rivets
-    rivet_color = (170, 150, 40)
-    for rx, ry in [(4, 4), (28, 4), (4, 28), (28, 28), (16, 16)]:
+    # Bottom piece — flat plate angled
+    for x in range(8, 26):
+        for y in range(20, 26):
+            if y < 23 + (x - 8) // 6:
+                scrap_frame.set_at((x, y), metal_dark)
+                if y == 20:
+                    highlight_px(scrap_frame, x, y, metal_dark, 35)
+
+    # Middle piece — bent panel
+    for x in range(6, 22):
+        for y in range(14, 22):
+            if abs(x - 14) + abs(y - 18) < 10:
+                scrap_frame.set_at((x, y), metal_mid)
+                if y <= 15:
+                    highlight_px(scrap_frame, x, y, metal_mid, 40)
+                if y >= 20:
+                    shadow_px(scrap_frame, x, y, metal_mid, 30)
+
+    # Top piece — small gear/cog shape
+    gear_cx, gear_cy = 18, 12
+    gear_color = (190, 175, 70)
+    for x in range(gear_cx - 5, gear_cx + 6):
+        for y in range(gear_cy - 5, gear_cy + 6):
+            dx, dy = x - gear_cx, y - gear_cy
+            dist = dx * dx + dy * dy
+            if dist <= 16:
+                if 0 <= x < TILE and 0 <= y < TILE:
+                    scrap_frame.set_at((x, y), gear_color)
+            # Gear teeth
+            if dist <= 25 and dist > 12 and (abs(dx) <= 1 or abs(dy) <= 1):
+                if 0 <= x < TILE and 0 <= y < TILE:
+                    scrap_frame.set_at((x, y), gear_color)
+    # Gear hole
+    for dx in range(-1, 2):
+        for dy in range(-1, 2):
+            if abs(dx) + abs(dy) <= 1:
+                scrap_frame.set_at((gear_cx + dx, gear_cy + dy), metal_dark)
+
+    # Small pipe piece on the left
+    pipe_color = (150, 140, 55)
+    for y in range(10, 20):
+        for x in range(9, 12):
+            if 0 <= x < TILE and 0 <= y < TILE:
+                scrap_frame.set_at((x, y), pipe_color)
+                if x == 9:
+                    highlight_px(scrap_frame, x, y, pipe_color, 30)
+                if x == 11:
+                    shadow_px(scrap_frame, x, y, pipe_color, 25)
+
+    # Rust spots
+    rust_spots = [(10, 22), (20, 18), (14, 16), (22, 24)]
+    for sx, sy in rust_spots:
         for dx in range(-1, 2):
             for dy in range(-1, 2):
-                if abs(dx) + abs(dy) <= 1:
-                    px, py = rx + dx, ry + dy
-                    if 0 <= px < TILE and 0 <= py < TILE:
-                        scrap_frame.set_at((px, py), rivet_color)
+                px, py = sx + dx, sy + dy
+                if 0 <= px < TILE and 0 <= py < TILE:
+                    scrap_frame.set_at((px, py), rust_color)
+
+    # Metallic shine highlights on top edges
+    shine_spots = [(12, 14), (18, 10), (15, 12), (20, 14)]
+    for sx, sy in shine_spots:
+        if 0 <= sx < TILE and 0 <= sy < TILE:
+            scrap_frame.set_at((sx, sy), metal_light)
+        if 0 <= sx + 1 < TILE and 0 <= sy < TILE:
+            scrap_frame.set_at((sx + 1, sy), metal_light)
 
     sheet.blit(scrap_frame, (TILE * 2, 0))
+
+    # DOOR tile — wooden door
+    door_base = (80, 60, 40)
+    door_frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+    rng4 = random.Random(400)
+    # Wood background
+    for x in range(TILE):
+        for y in range(TILE):
+            variation = rng4.randint(-8, 8)
+            c = (
+                max(0, min(255, door_base[0] + variation)),
+                max(0, min(255, door_base[1] + variation)),
+                max(0, min(255, door_base[2] + variation)),
+            )
+            door_frame.set_at((x, y), c)
+    # Vertical wood planks
+    plank_color = (60, 45, 30)
+    for px in (8, 16, 24):
+        for y in range(TILE):
+            door_frame.set_at((px, y), plank_color)
+    # Horizontal bands (top, middle, bottom)
+    band_color = (50, 40, 25)
+    for by in (4, 15, 27):
+        for x in range(TILE):
+            door_frame.set_at((x, by), band_color)
+            if by + 1 < TILE:
+                door_frame.set_at((x, by + 1), band_color)
+    # Door handle
+    handle_color = (180, 160, 80)
+    for dx in range(-1, 2):
+        for dy in range(-1, 2):
+            hx, hy = 22 + dx, 16 + dy
+            if 0 <= hx < TILE and 0 <= hy < TILE and abs(dx) + abs(dy) <= 1:
+                door_frame.set_at((hx, hy), handle_color)
+    # Highlight on top edge
+    for x in range(1, TILE - 1):
+        highlight_px(door_frame, x, 1, door_base, 30)
+    sheet.blit(door_frame, (TILE * 3, 0))
 
     path = os.path.join(TILES_DIR, "tileset.png")
     pygame.image.save(sheet, path)

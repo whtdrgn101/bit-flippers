@@ -2,9 +2,10 @@ import random
 from enum import Enum, auto
 
 import pygame
-from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE
+from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE, COLOR_SP_BAR
 from bit_flippers.combat import create_enemy_combatant, CombatEntity
 from bit_flippers.items import ITEM_REGISTRY
+from bit_flippers.player_stats import effective_attack, effective_defense, calc_hit_chance
 
 
 class Phase(Enum):
@@ -32,16 +33,17 @@ class CombatState:
         self.reward_xp = 0
         self.reward_money = 0
 
-        # Build a lightweight player combatant using overworld HP
+        # Build a player combatant using stat-derived values
         from bit_flippers.sprites import load_player
-        from bit_flippers.settings import PLAYER_ATTACK, PLAYER_DEFENSE
 
+        stats = overworld.stats
+        self.player_stats = stats
         self.player = CombatEntity(
             name="Player",
-            hp=overworld.player_hp,
-            max_hp=overworld.player_max_hp,
-            attack=PLAYER_ATTACK,
-            defense=PLAYER_DEFENSE,
+            hp=stats.current_hp,
+            max_hp=stats.max_hp,
+            attack=effective_attack(stats),
+            defense=effective_defense(stats),
             sprite=load_player(),
         )
 
@@ -102,6 +104,15 @@ class CombatState:
 
     def _execute_player_action(self, action):
         if action == "Attack":
+            # Hit/miss check
+            hit_chance = calc_hit_chance(self.player_stats.dexterity, self.enemy_data.dexterity)
+            if random.random() > hit_chance:
+                self.message = "Attack missed!"
+                self.defending = False
+                self.phase = Phase.PLAYER_ATTACK
+                self.phase_timer = 0.6
+                return
+
             damage = max(1, self.player.attack - self.enemy.defense + random.randint(-1, 1))
             self.enemy.hp = max(0, self.enemy.hp - damage)
             self.game.audio.play_sfx("hit")
@@ -191,6 +202,15 @@ class CombatState:
         self.phase_timer = 0.6
 
     def _do_enemy_attack(self):
+        # Hit/miss check for enemy
+        hit_chance = calc_hit_chance(self.enemy_data.dexterity, self.player_stats.dexterity)
+        if random.random() > hit_chance:
+            self.message = f"{self.enemy.name} missed!"
+            self.defending = False
+            self.phase = Phase.ENEMY_ATTACK
+            self.phase_timer = 0.6
+            return
+
         raw_damage = max(1, self.enemy.attack - self.player.defense + random.randint(-1, 1))
         damage = max(1, raw_damage // 2) if self.defending else raw_damage
         self.player.hp = max(0, self.player.hp - damage)
@@ -213,14 +233,16 @@ class CombatState:
     def _finish_combat(self):
         # Remove temporary defense buff before syncing
         self.player.defense -= self.defense_buff
-        # Sync HP back to overworld
-        self.overworld.player_hp = self.player.hp
+        # Sync HP back to overworld stats
+        self.overworld.stats.current_hp = self.player.hp
         # Notify overworld of victory so scripted enemies can be removed
         if self.phase == Phase.VICTORY:
             self.overworld.on_combat_victory(enemy_data=self.enemy_data)
         else:
             self.overworld.on_combat_end()
-        self.game.audio.play_music("overworld")
+        from bit_flippers.maps import MAP_REGISTRY
+        map_def = MAP_REGISTRY[self.overworld.current_map_id]
+        self.game.audio.play_music(map_def.music_track)
         self.game.pop_state()
 
     def update(self, dt):
@@ -262,6 +284,10 @@ class CombatState:
         # HP bars
         self._draw_hp_bar(screen, self.player, self.player_pos[0] - 10, self.player_pos[1] - 30, 80)
         self._draw_hp_bar(screen, self.enemy, self.enemy_pos[0] - 10, self.enemy_pos[1] - 30, 80)
+
+        # SP bar for player (below HP bar)
+        sp_y = self.player_pos[1] - 30 + 24
+        self._draw_sp_bar(screen, self.player_pos[0] - 10, sp_y, 80)
 
         # Damage text
         if self.damage_text_timer > 0:
@@ -327,6 +353,16 @@ class CombatState:
         screen.blit(hp_text, (x, y - 16))
         name_text = self.font_small.render(entity.name, True, (255, 255, 255))
         screen.blit(name_text, (x, y - 32))
+
+    def _draw_sp_bar(self, screen, x, y, width):
+        """Draw player SP bar in combat."""
+        bar_height = 6
+        ratio = self.player_stats.current_sp / self.player_stats.max_sp if self.player_stats.max_sp > 0 else 0
+        pygame.draw.rect(screen, (40, 40, 40), (x, y, width, bar_height))
+        pygame.draw.rect(screen, COLOR_SP_BAR, (x, y, int(width * ratio), bar_height))
+        pygame.draw.rect(screen, (140, 140, 140), (x, y, width, bar_height), 1)
+        sp_text = self.font_small.render(f"SP {self.player_stats.current_sp}/{self.player_stats.max_sp}", True, (180, 200, 255))
+        screen.blit(sp_text, (x + width + 4, y - 2))
 
     def _draw_menu(self, screen):
         menu_x = SCREEN_WIDTH // 2 - 60

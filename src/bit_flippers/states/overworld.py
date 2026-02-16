@@ -1,3 +1,4 @@
+import copy
 import random
 
 import pygame
@@ -6,21 +7,23 @@ from bit_flippers.settings import (
     SCREEN_HEIGHT,
     TILE_SIZE,
     PLAYER_MOVE_SPEED,
-    PLAYER_MAX_HP,
-    RANDOM_ENCOUNTER_CHANCE,
     MIN_STEPS_BETWEEN_ENCOUNTERS,
     SCRAP_BONUS_ITEM_CHANCE,
     PICKUP_MESSAGE_DURATION,
     BASE_XP,
-    LEVEL_UP_HP_BONUS,
     COLOR_XP_BAR,
+    COLOR_SP_BAR,
     COLOR_MONEY_TEXT,
 )
 from bit_flippers.camera import Camera
-from bit_flippers.tilemap import TileMap, DIRT, SCRAP
-from bit_flippers.sprites import create_placeholder_player, create_placeholder_npc, load_player
+from bit_flippers.tilemap import TileMap, DIRT, SCRAP, DOOR
+from bit_flippers.sprites import create_placeholder_npc, load_player
 from bit_flippers.npc import make_npc
 from bit_flippers.items import Inventory
+from bit_flippers.maps import MAP_REGISTRY, MapPersistence
+from bit_flippers.player_stats import (
+    PlayerStats, load_stats, save_stats, points_for_level,
+)
 
 MOVE_COOLDOWN = 0.15  # seconds between steps
 
@@ -36,8 +39,9 @@ DIRECTION_MAP = {
 class OverworldState:
     def __init__(self, game):
         self.game = game
-        self.tilemap = TileMap()
-        self.camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
+
+        # Player stats (replaces flat hp/level/xp/money attributes)
+        self.stats = load_stats()
 
         # Logical tile position
         self.player_x = 2
@@ -53,15 +57,6 @@ class OverworldState:
         self.move_timer = 0.0
         self.held_direction = None
 
-        # Player HP (persists across combats)
-        self.player_max_hp = PLAYER_MAX_HP
-        self.player_hp = self.player_max_hp
-
-        # Progression
-        self.player_level = 1
-        self.player_xp = 0
-        self.player_money = 0
-
         # Inventory
         self.inventory = Inventory()
 
@@ -72,89 +67,116 @@ class OverworldState:
         # Random encounter tracking
         self.steps_since_encounter = 0
 
-        # NPCs
-        self.npcs = self._create_npcs()
-
-        # Enemy NPCs (scripted encounters — removed after defeat)
-        self.enemy_npcs = self._create_enemy_npcs()
-
         # Scripted combat tracking
         self._current_scripted_enemy = None
 
         # HUD font
         self.hud_font = pygame.font.SysFont(None, 22)
 
-        # Start overworld music
-        self.game.audio.play_music("overworld")
+        # Map system
+        self.current_map_id = "overworld"
+        self.map_persistence: dict[str, MapPersistence] = {}
+        self.npcs = []
+        self.enemy_npcs = []
+        self.tilemap = None
+        self.camera = None
 
-    def _create_npcs(self):
-        return [
-            make_npc(
-                5, 5, "Old Tinker",
-                [
-                    "Ah, a traveler! Haven't seen one in ages.",
-                    "The scrap piles around here hold useful parts.",
-                    "Watch out for Rust Golems in the eastern corridors.",
-                ],
-                body_color=(80, 180, 80),
-                facing="down",
-                npc_key="old_tinker",
-            ),
-            make_npc(
-                16, 4, "Sparks",
-                [
-                    "Bzzt! I used to be a maintenance bot.",
-                    "My circuits are a bit scrambled these days...",
-                    "If you find any spare capacitors, I'd be grateful!",
-                ],
-                body_color=(200, 160, 50),
-                facing="left",
-                npc_key="sparks",
-            ),
-            make_npc(
-                22, 7, "Drifter",
-                [
-                    "Keep your voice down...",
-                    "There's something lurking in the south tunnels.",
-                    "I've heard strange sounds coming from the walls.",
-                ],
-                body_color=(160, 100, 180),
-                facing="right",
-                npc_key="drifter",
-            ),
-            make_npc(
-                34, 2, "Scout",
-                [
-                    "I've mapped most of this sector.",
-                    "The northwest rooms are relatively safe.",
-                    "But the open areas? That's where the rats swarm.",
-                ],
-                body_color=(100, 160, 200),
-                facing="down",
-                npc_key="scout",
-            ),
-        ]
+        # Load the starting map
+        self._load_map("overworld")
 
-    def _create_enemy_npcs(self):
-        """Scripted encounter enemies placed on the map."""
+    def _get_persistence(self, map_id):
+        """Get or create persistence data for a map."""
+        if map_id not in self.map_persistence:
+            self.map_persistence[map_id] = MapPersistence()
+        return self.map_persistence[map_id]
+
+    def _save_current_persistence(self):
+        """Save scrap/enemy state from the current map to persistence."""
+        if self.current_map_id is None or self.tilemap is None:
+            return
+        persist = self._get_persistence(self.current_map_id)
+        map_def = MAP_REGISTRY[self.current_map_id]
+        # Record collected scrap: compare current grid vs original
+        for y in range(len(map_def.grid)):
+            for x in range(len(map_def.grid[y])):
+                if map_def.grid[y][x] == SCRAP and self.tilemap.grid[y][x] != SCRAP:
+                    persist.collected_scrap.add((x, y))
+        # Record defeated enemies
+        for enpc in self.enemy_npcs:
+            if enpc["defeated"]:
+                persist.defeated_enemies.add(enpc["index"])
+
+    def _load_map(self, map_id, spawn_x=None, spawn_y=None, spawn_facing=None):
+        """Load a map from the registry, applying persistence."""
+        # Save current map state before switching
+        self._save_current_persistence()
+
+        map_def = MAP_REGISTRY[map_id]
+        self.current_map_id = map_id
+
+        # Deep-copy the grid so modifications (scrap pickup) don't affect the template
+        grid = copy.deepcopy(map_def.grid)
+
+        # Apply persistence — remove collected scrap
+        persist = self._get_persistence(map_id)
+        for (sx, sy) in persist.collected_scrap:
+            if 0 <= sy < len(grid) and 0 <= sx < len(grid[sy]):
+                grid[sy][sx] = DIRT
+
+        # Create tilemap and camera
+        self.tilemap = TileMap(grid, tile_colors_override=map_def.tile_colors_override)
+        self.camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
+
+        # Set player position
+        px = spawn_x if spawn_x is not None else map_def.player_start_x
+        py = spawn_y if spawn_y is not None else map_def.player_start_y
+        self.player_x = px
+        self.player_y = py
+        self.player_visual_x = float(px * TILE_SIZE)
+        self.player_visual_y = float(py * TILE_SIZE)
+        if spawn_facing:
+            self.player_facing = spawn_facing
+
+        # Build NPC list from MapDef
+        self.npcs = []
+        for npc_def in map_def.npcs:
+            self.npcs.append(
+                make_npc(
+                    npc_def.tile_x, npc_def.tile_y, npc_def.name,
+                    npc_def.dialogue, body_color=npc_def.color,
+                    facing=npc_def.facing, npc_key=npc_def.sprite_key,
+                )
+            )
+
+        # Build enemy NPC list from MapDef
         from bit_flippers.combat import ENEMY_TYPES
+        self.enemy_npcs = []
+        for idx, edef in enumerate(map_def.enemies):
+            defeated = idx in persist.defeated_enemies
+            self.enemy_npcs.append({
+                "index": idx,
+                "tile_x": edef.tile_x,
+                "tile_y": edef.tile_y,
+                "enemy_data": ENEMY_TYPES[edef.enemy_type_key],
+                "sprite": create_placeholder_npc(edef.color, facing="down"),
+                "defeated": defeated,
+            })
 
-        return [
-            {
-                "tile_x": 10,
-                "tile_y": 8,
-                "enemy_data": ENEMY_TYPES["Rust Golem"],
-                "sprite": create_placeholder_npc((160, 60, 40), facing="down"),
-                "defeated": False,
-            },
-            {
-                "tile_x": 30,
-                "tile_y": 12,
-                "enemy_data": ENEMY_TYPES["Volt Wraith"],
-                "sprite": create_placeholder_npc((100, 40, 160), facing="left"),
-                "defeated": False,
-            },
-        ]
+        # Play map music
+        self.game.audio.play_music(map_def.music_track)
+
+    def _handle_door_transition(self):
+        """Check if the player is standing on a door and transition if so."""
+        map_def = MAP_REGISTRY[self.current_map_id]
+        for door in map_def.doors:
+            if door.x == self.player_x and door.y == self.player_y:
+                self._load_map(
+                    door.target_map_id,
+                    spawn_x=door.target_spawn_x,
+                    spawn_y=door.target_spawn_y,
+                    spawn_facing=door.target_facing,
+                )
+                return
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -167,6 +189,9 @@ class OverworldState:
             elif event.key == pygame.K_ESCAPE:
                 from bit_flippers.states.inventory import InventoryState
                 self.game.push_state(InventoryState(self.game, self.inventory, self))
+            elif event.key == pygame.K_c:
+                from bit_flippers.states.character import CharacterScreenState
+                self.game.push_state(CharacterScreenState(self.game, self.stats))
         elif event.type == pygame.KEYUP:
             if event.key == self.held_direction:
                 self.held_direction = None
@@ -217,28 +242,31 @@ class OverworldState:
 
     def xp_to_next_level(self):
         """XP required to advance from current level to the next."""
-        return self.player_level * BASE_XP
+        return self.stats.level * BASE_XP
 
     def _grant_rewards(self, enemy_data):
         """Grant XP and money from a defeated enemy, handling multi-level-ups."""
-        self.player_xp += enemy_data.xp_reward
-        self.player_money += enemy_data.money_reward
+        self.stats.xp += enemy_data.xp_reward
+        self.stats.money += enemy_data.money_reward
 
         # Level-up loop (supports multi-level-up from big XP rewards)
         leveled = False
-        while self.player_xp >= self.xp_to_next_level():
-            self.player_xp -= self.xp_to_next_level()
-            self.player_level += 1
-            # Increase max HP by 2%, minimum +1
-            bonus = max(1, int(self.player_max_hp * LEVEL_UP_HP_BONUS))
-            self.player_max_hp += bonus
+        while self.stats.xp >= self.xp_to_next_level():
+            self.stats.xp -= self.xp_to_next_level()
+            self.stats.level += 1
+            pts = points_for_level(self.stats.level)
+            self.stats.unspent_points += pts
             # Full heal on level up
-            self.player_hp = self.player_max_hp
+            self.stats.current_hp = self.stats.max_hp
+            self.stats.current_sp = self.stats.max_sp
             leveled = True
 
         if leveled:
-            self.pickup_message = f"Level up! Now level {self.player_level}!"
+            self.pickup_message = f"Level up! Now level {self.stats.level}!"
             self.pickup_message_timer = PICKUP_MESSAGE_DURATION
+
+        # Auto-save after rewards
+        save_stats(self.stats)
 
     def on_combat_victory(self, enemy_data=None):
         """Called by CombatState when the player wins."""
@@ -247,19 +275,23 @@ class OverworldState:
         if self._current_scripted_enemy is not None:
             self._current_scripted_enemy["defeated"] = True
         self._current_scripted_enemy = None
-        self.game.audio.play_music("overworld")
+        map_def = MAP_REGISTRY[self.current_map_id]
+        self.game.audio.play_music(map_def.music_track)
 
     def on_combat_end(self):
         """Called by CombatState on defeat or flee."""
         self._current_scripted_enemy = None
-        self.game.audio.play_music("overworld")
+        map_def = MAP_REGISTRY[self.current_map_id]
+        self.game.audio.play_music(map_def.music_track)
 
     def _start_random_combat(self):
         from bit_flippers.combat import ENEMY_TYPES
         from bit_flippers.states.combat import CombatState
 
-        # Pick a random weak enemy for random encounters
-        enemy_data = random.choice([ENEMY_TYPES["Scrap Rat"], ENEMY_TYPES["Scrap Rat"], ENEMY_TYPES["Rust Golem"]])
+        map_def = MAP_REGISTRY[self.current_map_id]
+        if not map_def.encounter_table:
+            return
+        enemy_data = ENEMY_TYPES[random.choice(map_def.encounter_table)]
         self.steps_since_encounter = 0
         self.game.audio.stop_music()
         self.game.push_state(CombatState(self.game, enemy_data, self, self.inventory))
@@ -364,40 +396,66 @@ class OverworldState:
     def _draw_hud(self, screen):
         x, y = 10, 10
         bar_width, bar_height = 100, 12
+        bar_x = x + 28
 
         # Level label
-        level_label = self.hud_font.render(f"Lv {self.player_level}", True, (255, 255, 255))
+        level_label = self.hud_font.render(f"Lv {self.stats.level}", True, (255, 255, 255))
         screen.blit(level_label, (x, y))
         y += 18
 
         # HP bar
-        hp_ratio = self.player_hp / self.player_max_hp if self.player_max_hp > 0 else 0
+        hp_ratio = self.stats.current_hp / self.stats.max_hp if self.stats.max_hp > 0 else 0
         hp_label = self.hud_font.render("HP", True, (255, 255, 255))
         screen.blit(hp_label, (x, y))
-        bar_x = x + 28
         pygame.draw.rect(screen, (60, 60, 60), (bar_x, y + 2, bar_width, bar_height))
         hp_color = (80, 200, 80) if hp_ratio > 0.5 else (200, 200, 40) if hp_ratio > 0.25 else (200, 60, 60)
         pygame.draw.rect(screen, hp_color, (bar_x, y + 2, int(bar_width * hp_ratio), bar_height))
         pygame.draw.rect(screen, (180, 180, 180), (bar_x, y + 2, bar_width, bar_height), 1)
-        hp_text = self.hud_font.render(f"{self.player_hp}/{self.player_max_hp}", True, (255, 255, 255))
+        hp_text = self.hud_font.render(f"{self.stats.current_hp}/{self.stats.max_hp}", True, (255, 255, 255))
         screen.blit(hp_text, (bar_x + bar_width + 6, y + 1))
+        y += 18
+
+        # SP bar
+        sp_ratio = self.stats.current_sp / self.stats.max_sp if self.stats.max_sp > 0 else 0
+        sp_label = self.hud_font.render("SP", True, (255, 255, 255))
+        screen.blit(sp_label, (x, y))
+        pygame.draw.rect(screen, (40, 40, 40), (bar_x, y + 2, bar_width, bar_height))
+        pygame.draw.rect(screen, COLOR_SP_BAR, (bar_x, y + 2, int(bar_width * sp_ratio), bar_height))
+        pygame.draw.rect(screen, (140, 140, 140), (bar_x, y + 2, bar_width, bar_height), 1)
+        sp_text = self.hud_font.render(f"{self.stats.current_sp}/{self.stats.max_sp}", True, (255, 255, 255))
+        screen.blit(sp_text, (bar_x + bar_width + 6, y + 1))
         y += 18
 
         # XP bar
         xp_label = self.hud_font.render("XP", True, (255, 255, 255))
         screen.blit(xp_label, (x, y))
         xp_needed = self.xp_to_next_level()
-        xp_ratio = self.player_xp / xp_needed if xp_needed > 0 else 0
+        xp_ratio = self.stats.xp / xp_needed if xp_needed > 0 else 0
         pygame.draw.rect(screen, (60, 60, 60), (bar_x, y + 2, bar_width, bar_height))
         pygame.draw.rect(screen, COLOR_XP_BAR, (bar_x, y + 2, int(bar_width * xp_ratio), bar_height))
         pygame.draw.rect(screen, (180, 180, 180), (bar_x, y + 2, bar_width, bar_height), 1)
-        xp_text = self.hud_font.render(f"{self.player_xp}/{xp_needed}", True, (255, 255, 255))
+        xp_text = self.hud_font.render(f"{self.stats.xp}/{xp_needed}", True, (255, 255, 255))
         screen.blit(xp_text, (bar_x + bar_width + 6, y + 1))
         y += 18
 
         # Money line
-        money_label = self.hud_font.render(f"Scrap: {self.player_money}", True, COLOR_MONEY_TEXT)
+        money_label = self.hud_font.render(f"Scrap: {self.stats.money}", True, COLOR_MONEY_TEXT)
         screen.blit(money_label, (x, y))
+        y += 18
+
+        # Unspent points indicator
+        if self.stats.unspent_points > 0:
+            pts_label = self.hud_font.render(
+                f"+{self.stats.unspent_points} pts [C]", True, (255, 220, 100)
+            )
+            screen.blit(pts_label, (x, y))
+            y += 18
+
+        # Map name
+        map_def = MAP_REGISTRY.get(self.current_map_id)
+        if map_def and self.current_map_id != "overworld":
+            map_label = self.hud_font.render(map_def.display_name, True, (200, 200, 200))
+            screen.blit(map_label, (x, y))
 
         # Pickup notification
         if self.pickup_message:
@@ -416,6 +474,11 @@ class OverworldState:
             self.player_y = new_y
             self.steps_since_encounter += 1
 
+            # Check for door transition
+            if self.tilemap.grid[new_y][new_x] == DOOR:
+                self._handle_door_transition()
+                return
+
             # Scrap pickup
             if self.tilemap.grid[new_y][new_x] == SCRAP:
                 self.tilemap.grid[new_y][new_x] = DIRT
@@ -431,9 +494,11 @@ class OverworldState:
                 self.pickup_message_timer = PICKUP_MESSAGE_DURATION
 
             # Random encounter check on DIRT tiles
+            map_def = MAP_REGISTRY[self.current_map_id]
             if (
-                self.steps_since_encounter >= MIN_STEPS_BETWEEN_ENCOUNTERS
+                map_def.encounter_table
+                and self.steps_since_encounter >= MIN_STEPS_BETWEEN_ENCOUNTERS
                 and self.tilemap.grid[new_y][new_x] == DIRT
-                and random.random() < RANDOM_ENCOUNTER_CHANCE
+                and random.random() < map_def.encounter_chance
             ):
                 self._start_random_combat()

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from bit_flippers.settings import PLAYER_MAX_HP, PLAYER_ATTACK, PLAYER_DEFENSE
 from bit_flippers.sprites import AnimatedSprite, create_placeholder_enemy, load_player, load_enemy
 
 
@@ -27,25 +26,14 @@ class EnemyData:
     color: tuple[int, int, int]
     xp_reward: int = 0
     money_reward: int = 0
+    dexterity: int = 5
 
 
 ENEMY_TYPES: dict[str, EnemyData] = {
-    "Scrap Rat": EnemyData(name="Scrap Rat", hp=12, attack=4, defense=1, color=(140, 100, 60), xp_reward=8, money_reward=5),
-    "Rust Golem": EnemyData(name="Rust Golem", hp=25, attack=7, defense=4, color=(160, 80, 40), xp_reward=18, money_reward=12),
-    "Volt Wraith": EnemyData(name="Volt Wraith", hp=20, attack=10, defense=2, color=(100, 60, 180), xp_reward=22, money_reward=15),
+    "Scrap Rat": EnemyData(name="Scrap Rat", hp=12, attack=4, defense=1, color=(140, 100, 60), xp_reward=8, money_reward=5, dexterity=4),
+    "Rust Golem": EnemyData(name="Rust Golem", hp=25, attack=7, defense=4, color=(160, 80, 40), xp_reward=18, money_reward=12, dexterity=2),
+    "Volt Wraith": EnemyData(name="Volt Wraith", hp=20, attack=10, defense=2, color=(100, 60, 180), xp_reward=22, money_reward=15, dexterity=7),
 }
-
-
-def create_player_combatant():
-    """Create a CombatEntity for the player with default stats."""
-    return CombatEntity(
-        name="Player",
-        hp=PLAYER_MAX_HP,
-        max_hp=PLAYER_MAX_HP,
-        attack=PLAYER_ATTACK,
-        defense=PLAYER_DEFENSE,
-        sprite=load_player(),
-    )
 
 
 def create_enemy_combatant(enemy_data: EnemyData) -> CombatEntity:
