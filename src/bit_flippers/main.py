@@ -1,5 +1,6 @@
 import pygame
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, COLOR_BLACK
+from bit_flippers.audio import AudioManager
 from bit_flippers.states.overworld import OverworldState
 
 
@@ -9,6 +10,7 @@ class Game:
         pygame.display.set_caption("Bit Flippers")
         self.clock = pygame.time.Clock()
         self.running = True
+        self.audio = AudioManager()
         self.state_stack: list = []
         self.state_stack.append(OverworldState(self))
 

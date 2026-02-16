@@ -23,14 +23,14 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Walk/idle animation switching based on movement
 
 ## Milestone 4: NPC System + Dialogue
-**Status: Not started**
+**Status: Done**
 - NPC entities placed on the map with sprites and idle animations
 - Interaction trigger (face NPC + press key)
 - Dialogue box UI with typewriter text effect
 - Advance/dismiss dialogue on keypress
 
 ## Milestone 5: Turn-Based Combat Foundation
-**Status: Not started**
+**Status: Done**
 - Encounter triggers (scripted or random)
 - Battle state: separate screen with player party vs enemies
 - Menu-driven actions: Attack, Defend, Item, Flee
@@ -38,7 +38,7 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Win/lose conditions, transition back to overworld
 
 ## Milestone 6: Inventory + Items
-**Status: Not started**
+**Status: Done**
 - Item data model (name, type, effect)
 - Scrap tile pickup adds to inventory
 - Inventory/pause menu

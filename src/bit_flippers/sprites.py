@@ -1,5 +1,11 @@
+import os
+
 import pygame
 from bit_flippers.settings import TILE_SIZE
+
+_ASSET_DIR = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "assets")
+)
 
 
 class SpriteSheet:
@@ -188,5 +194,69 @@ def create_placeholder_enemy(body_color):
 
     # Use 2 frames for a subtle idle bob animation
     animations["idle_down"] = ([animations.pop("idle_frame_0"), animations.pop("idle_frame_1")], 0.4)
+
+    return AnimatedSprite(animations, default="idle_down")
+
+
+# ---------------------------------------------------------------------------
+# PNG-loading helpers (fall back to procedural placeholders if missing)
+# ---------------------------------------------------------------------------
+
+def _try_load_sheet(relative_path, frame_width, frame_height):
+    """Load a sprite sheet PNG from assets/ and return a SpriteSheet, or None."""
+    path = os.path.join(_ASSET_DIR, relative_path)
+    if not os.path.isfile(path):
+        return None
+    try:
+        surface = pygame.image.load(path).convert_alpha()
+        return SpriteSheet(surface, frame_width, frame_height)
+    except pygame.error:
+        return None
+
+
+def load_player():
+    """Load the player sprite from PNG sheet, falling back to placeholder."""
+    sheet = _try_load_sheet("sprites/player.png", TILE_SIZE, TILE_SIZE)
+    if sheet is None:
+        return create_placeholder_player()
+
+    # 4 cols x 4 rows.  Rows: down, up, left, right.  Cols: idle, walk1, walk2, walk3.
+    direction_rows = {"down": 0, "up": 1, "left": 2, "right": 3}
+    animations = {}
+    for direction, row in direction_rows.items():
+        walk_frames = [sheet.get_frame(c, row) for c in range(1, 4)]
+        idle_frame = sheet.get_frame(0, row)
+        animations[f"walk_{direction}"] = (walk_frames, 0.12)
+        animations[f"idle_{direction}"] = ([idle_frame], 0.5)
+
+    return AnimatedSprite(animations, default="idle_down")
+
+
+def load_npc(npc_key, body_color, facing="down"):
+    """Load an NPC sprite from PNG sheet, falling back to placeholder."""
+    sheet = _try_load_sheet(f"sprites/npc_{npc_key}.png", TILE_SIZE, TILE_SIZE)
+    if sheet is None:
+        return create_placeholder_npc(body_color, facing)
+
+    # 1 col x 4 rows.  Rows: down, up, left, right.
+    direction_rows = {"down": 0, "up": 1, "left": 2, "right": 3}
+    animations = {}
+    for direction, row in direction_rows.items():
+        frame = sheet.get_frame(0, row)
+        animations[f"idle_{direction}"] = ([frame], 0.5)
+
+    return AnimatedSprite(animations, default=f"idle_{facing}")
+
+
+def load_enemy(enemy_key, body_color):
+    """Load an enemy sprite from PNG sheet, falling back to placeholder."""
+    sheet = _try_load_sheet(f"sprites/enemy_{enemy_key}.png", TILE_SIZE, TILE_SIZE)
+    if sheet is None:
+        return create_placeholder_enemy(body_color)
+
+    # 2 cols x 1 row.  Two idle frames for bob animation.
+    frame0 = sheet.get_frame(0, 0)
+    frame1 = sheet.get_frame(1, 0)
+    animations = {"idle_down": ([frame0, frame1], 0.4)}
 
     return AnimatedSprite(animations, default="idle_down")

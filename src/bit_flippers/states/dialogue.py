@@ -50,6 +50,7 @@ class DialogueState:
                 else:
                     self.chars_revealed = 0.0
                     self.fully_revealed = False
+                    self.game.audio.play_sfx("dialogue_advance")
 
     def update(self, dt):
         if not self.fully_revealed:

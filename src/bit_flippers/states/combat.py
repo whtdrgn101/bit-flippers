@@ -28,7 +28,7 @@ class CombatState:
         self.enemy = create_enemy_combatant(enemy_data)
 
         # Build a lightweight player combatant using overworld HP
-        from bit_flippers.sprites import create_placeholder_player
+        from bit_flippers.sprites import load_player
         from bit_flippers.settings import PLAYER_MAX_HP, PLAYER_ATTACK, PLAYER_DEFENSE
 
         self.player = CombatEntity(
@@ -37,7 +37,7 @@ class CombatState:
             max_hp=PLAYER_MAX_HP,
             attack=PLAYER_ATTACK,
             defense=PLAYER_DEFENSE,
-            sprite=create_placeholder_player(),
+            sprite=load_player(),
         )
 
         self.phase = Phase.CHOOSING
@@ -68,6 +68,9 @@ class CombatState:
         self.player_pos = (SCREEN_WIDTH // 4 - TILE_SIZE, SCREEN_HEIGHT // 2 - TILE_SIZE)
         self.enemy_pos = (3 * SCREEN_WIDTH // 4 - TILE_SIZE, SCREEN_HEIGHT // 2 - TILE_SIZE)
 
+        # Combat music
+        self.game.audio.play_music("combat")
+
     def handle_event(self, event):
         if event.type != pygame.KEYDOWN:
             return
@@ -96,6 +99,7 @@ class CombatState:
         if action == "Attack":
             damage = max(1, self.player.attack - self.enemy.defense + random.randint(-1, 1))
             self.enemy.hp = max(0, self.enemy.hp - damage)
+            self.game.audio.play_sfx("hit")
             self.flash_target = "enemy"
             self.flash_timer = 0.3
             self.damage_text = f"-{damage}"
@@ -107,6 +111,8 @@ class CombatState:
                 self.phase = Phase.VICTORY
                 self.message = f"Defeated {self.enemy.name}!"
                 self.message_timer = 0.0
+                self.game.audio.stop_music()
+                self.game.audio.play_sfx("victory")
             else:
                 self.phase = Phase.PLAYER_ATTACK
                 self.phase_timer = 0.6
@@ -165,6 +171,8 @@ class CombatState:
                 self.phase = Phase.VICTORY
                 self.message = f"Defeated {self.enemy.name}!"
                 self.message_timer = 0.0
+                self.game.audio.stop_music()
+                self.game.audio.play_sfx("victory")
                 return
         elif item.effect_type == "buff_defense":
             self.defense_buff += item.effect_value
@@ -178,6 +186,7 @@ class CombatState:
         raw_damage = max(1, self.enemy.attack - self.player.defense + random.randint(-1, 1))
         damage = max(1, raw_damage // 2) if self.defending else raw_damage
         self.player.hp = max(0, self.player.hp - damage)
+        self.game.audio.play_sfx("hit")
         self.flash_target = "player"
         self.flash_timer = 0.3
         self.damage_text = f"-{damage}"
@@ -203,6 +212,7 @@ class CombatState:
             self.overworld.on_combat_victory()
         else:
             self.overworld.on_combat_end()
+        self.game.audio.play_music("overworld")
         self.game.pop_state()
 
     def update(self, dt):

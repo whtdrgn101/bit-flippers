@@ -14,7 +14,7 @@ from bit_flippers.settings import (
 )
 from bit_flippers.camera import Camera
 from bit_flippers.tilemap import TileMap, DIRT, SCRAP
-from bit_flippers.sprites import create_placeholder_player, create_placeholder_npc
+from bit_flippers.sprites import create_placeholder_player, create_placeholder_npc, load_player
 from bit_flippers.npc import make_npc
 from bit_flippers.items import Inventory
 
@@ -44,7 +44,7 @@ class OverworldState:
         self.player_visual_y = float(self.player_y * TILE_SIZE)
 
         self.player_facing = "down"
-        self.sprite = create_placeholder_player()
+        self.sprite = load_player()
 
         self.move_timer = 0.0
         self.held_direction = None
@@ -74,6 +74,9 @@ class OverworldState:
         # HUD font
         self.hud_font = pygame.font.SysFont(None, 22)
 
+        # Start overworld music
+        self.game.audio.play_music("overworld")
+
     def _create_npcs(self):
         return [
             make_npc(
@@ -85,6 +88,7 @@ class OverworldState:
                 ],
                 body_color=(80, 180, 80),
                 facing="down",
+                npc_key="old_tinker",
             ),
             make_npc(
                 16, 4, "Sparks",
@@ -95,6 +99,7 @@ class OverworldState:
                 ],
                 body_color=(200, 160, 50),
                 facing="left",
+                npc_key="sparks",
             ),
             make_npc(
                 22, 7, "Drifter",
@@ -105,6 +110,7 @@ class OverworldState:
                 ],
                 body_color=(160, 100, 180),
                 facing="right",
+                npc_key="drifter",
             ),
             make_npc(
                 34, 2, "Scout",
@@ -115,6 +121,7 @@ class OverworldState:
                 ],
                 body_color=(100, 160, 200),
                 facing="down",
+                npc_key="scout",
             ),
         ]
 
@@ -193,6 +200,7 @@ class OverworldState:
         from bit_flippers.states.combat import CombatState
 
         self._current_scripted_enemy = enemy_npc
+        self.game.audio.stop_music()
         self.game.push_state(
             CombatState(self.game, enemy_npc["enemy_data"], self, self.inventory)
         )
@@ -202,10 +210,12 @@ class OverworldState:
         if self._current_scripted_enemy is not None:
             self._current_scripted_enemy["defeated"] = True
         self._current_scripted_enemy = None
+        self.game.audio.play_music("overworld")
 
     def on_combat_end(self):
         """Called by CombatState on defeat or flee."""
         self._current_scripted_enemy = None
+        self.game.audio.play_music("overworld")
 
     def _start_random_combat(self):
         from bit_flippers.combat import ENEMY_TYPES
@@ -214,6 +224,7 @@ class OverworldState:
         # Pick a random weak enemy for random encounters
         enemy_data = random.choice([ENEMY_TYPES["Scrap Rat"], ENEMY_TYPES["Scrap Rat"], ENEMY_TYPES["Rust Golem"]])
         self.steps_since_encounter = 0
+        self.game.audio.stop_music()
         self.game.push_state(CombatState(self.game, enemy_data, self, self.inventory))
 
     def _npc_at(self, tx, ty):
@@ -356,6 +367,7 @@ class OverworldState:
             if self.tilemap.grid[new_y][new_x] == SCRAP:
                 self.tilemap.grid[new_y][new_x] = DIRT
                 self.inventory.add("Scrap Metal")
+                self.game.audio.play_sfx("pickup")
                 msg = "Picked up Scrap Metal!"
                 # 25% chance for a bonus consumable
                 if random.random() < SCRAP_BONUS_ITEM_CHANCE:

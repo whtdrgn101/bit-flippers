@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from bit_flippers.settings import PLAYER_MAX_HP, PLAYER_ATTACK, PLAYER_DEFENSE
-from bit_flippers.sprites import AnimatedSprite, create_placeholder_enemy
+from bit_flippers.sprites import AnimatedSprite, create_placeholder_enemy, load_player, load_enemy
 
 
 @dataclass
@@ -36,25 +36,24 @@ ENEMY_TYPES: dict[str, EnemyData] = {
 
 def create_player_combatant():
     """Create a CombatEntity for the player with default stats."""
-    from bit_flippers.sprites import create_placeholder_player
-
     return CombatEntity(
         name="Player",
         hp=PLAYER_MAX_HP,
         max_hp=PLAYER_MAX_HP,
         attack=PLAYER_ATTACK,
         defense=PLAYER_DEFENSE,
-        sprite=create_placeholder_player(),
+        sprite=load_player(),
     )
 
 
 def create_enemy_combatant(enemy_data: EnemyData) -> CombatEntity:
     """Create a CombatEntity from an EnemyData template."""
+    key = enemy_data.name.lower().replace(" ", "_")
     return CombatEntity(
         name=enemy_data.name,
         hp=enemy_data.hp,
         max_hp=enemy_data.hp,
         attack=enemy_data.attack,
         defense=enemy_data.defense,
-        sprite=create_placeholder_enemy(enemy_data.color),
+        sprite=load_enemy(key, enemy_data.color),
     )
