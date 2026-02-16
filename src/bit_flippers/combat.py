@@ -25,12 +25,14 @@ class EnemyData:
     attack: int
     defense: int
     color: tuple[int, int, int]
+    xp_reward: int = 0
+    money_reward: int = 0
 
 
 ENEMY_TYPES: dict[str, EnemyData] = {
-    "Scrap Rat": EnemyData(name="Scrap Rat", hp=12, attack=4, defense=1, color=(140, 100, 60)),
-    "Rust Golem": EnemyData(name="Rust Golem", hp=25, attack=7, defense=4, color=(160, 80, 40)),
-    "Volt Wraith": EnemyData(name="Volt Wraith", hp=20, attack=10, defense=2, color=(100, 60, 180)),
+    "Scrap Rat": EnemyData(name="Scrap Rat", hp=12, attack=4, defense=1, color=(140, 100, 60), xp_reward=8, money_reward=5),
+    "Rust Golem": EnemyData(name="Rust Golem", hp=25, attack=7, defense=4, color=(160, 80, 40), xp_reward=18, money_reward=12),
+    "Volt Wraith": EnemyData(name="Volt Wraith", hp=20, attack=10, defense=2, color=(100, 60, 180), xp_reward=22, money_reward=15),
 }
 
 

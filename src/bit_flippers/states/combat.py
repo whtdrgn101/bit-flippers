@@ -25,16 +25,21 @@ class CombatState:
         self.game = game
         self.overworld = overworld  # reference to overworld for HP sync
         self.inventory = inventory
+        self.enemy_data = enemy_data
         self.enemy = create_enemy_combatant(enemy_data)
+
+        # Reward display (set on victory)
+        self.reward_xp = 0
+        self.reward_money = 0
 
         # Build a lightweight player combatant using overworld HP
         from bit_flippers.sprites import load_player
-        from bit_flippers.settings import PLAYER_MAX_HP, PLAYER_ATTACK, PLAYER_DEFENSE
+        from bit_flippers.settings import PLAYER_ATTACK, PLAYER_DEFENSE
 
         self.player = CombatEntity(
             name="Player",
             hp=overworld.player_hp,
-            max_hp=PLAYER_MAX_HP,
+            max_hp=overworld.player_max_hp,
             attack=PLAYER_ATTACK,
             defense=PLAYER_DEFENSE,
             sprite=load_player(),
@@ -110,6 +115,8 @@ class CombatState:
             if not self.enemy.is_alive:
                 self.phase = Phase.VICTORY
                 self.message = f"Defeated {self.enemy.name}!"
+                self.reward_xp = self.enemy_data.xp_reward
+                self.reward_money = self.enemy_data.money_reward
                 self.message_timer = 0.0
                 self.game.audio.stop_music()
                 self.game.audio.play_sfx("victory")
@@ -154,7 +161,6 @@ class CombatState:
         self.defending = False
 
         if item.effect_type == "heal":
-            from bit_flippers.settings import PLAYER_MAX_HP
             old_hp = self.player.hp
             self.player.hp = min(self.player.max_hp, self.player.hp + item.effect_value)
             healed = self.player.hp - old_hp
@@ -170,6 +176,8 @@ class CombatState:
             if not self.enemy.is_alive:
                 self.phase = Phase.VICTORY
                 self.message = f"Defeated {self.enemy.name}!"
+                self.reward_xp = self.enemy_data.xp_reward
+                self.reward_money = self.enemy_data.money_reward
                 self.message_timer = 0.0
                 self.game.audio.stop_music()
                 self.game.audio.play_sfx("victory")
@@ -209,7 +217,7 @@ class CombatState:
         self.overworld.player_hp = self.player.hp
         # Notify overworld of victory so scripted enemies can be removed
         if self.phase == Phase.VICTORY:
-            self.overworld.on_combat_victory()
+            self.overworld.on_combat_victory(enemy_data=self.enemy_data)
         else:
             self.overworld.on_combat_end()
         self.game.audio.play_music("overworld")
@@ -274,6 +282,15 @@ class CombatState:
             self._draw_menu(screen)
             self._draw_item_submenu(screen)
         elif self.phase in (Phase.VICTORY, Phase.DEFEAT, Phase.FLED):
+            if self.phase == Phase.VICTORY and (self.reward_xp or self.reward_money):
+                reward_y = SCREEN_HEIGHT - 110
+                if self.reward_xp:
+                    xp_surf = self.font.render(f"+{self.reward_xp} XP", True, (100, 180, 255))
+                    screen.blit(xp_surf, (SCREEN_WIDTH // 2 - xp_surf.get_width() // 2, reward_y))
+                    reward_y += 28
+                if self.reward_money:
+                    money_surf = self.font.render(f"+{self.reward_money} Scrap", True, (220, 200, 100))
+                    screen.blit(money_surf, (SCREEN_WIDTH // 2 - money_surf.get_width() // 2, reward_y))
             prompt = self.font_small.render("[SPACE to continue]", True, (180, 180, 180))
             screen.blit(
                 prompt,

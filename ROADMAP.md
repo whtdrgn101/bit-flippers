@@ -45,12 +45,24 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Usable items in combat (healing, buffs)
 
 ## Milestone 7: Art Assets + Audio
-**Status: Not started**
-- Pixel art sprite sheets replacing procedural sprites
-- Tile set artwork
-- Background music, sound effects
+**Status: Done**
+- Pixel art sprite sheets replacing procedural sprites (with fallback)
+- Tile set artwork (dirt noise, brick walls, metallic scrap)
+- Asset generator tool (`tools/generate_assets.py`)
+- AudioManager infrastructure (SFX + music wiring, no audio files yet)
 
-## Milestone 8: Map Transitions + Multiple Areas
+## Milestone 8: Experience, Money + Level Progression
+**Status: Done**
+- Enemies award XP and money on defeat
+- Steady linear XP curve (level N requires N × 20 XP)
+- Level up resets HP to full and increases max HP by 2% (min +1)
+- Money ("Scrap") tracked on overworld state, displayed in HUD
+- HUD displays level, HP bar, XP bar (blue), and money
+- Victory screen shows "+X XP" and "+Y Scrap" earned
+- Multi-level-up support for large XP rewards
+- Dynamic max HP used across combat and inventory
+
+## Milestone 9: Map Transitions + Multiple Areas
 **Status: Not started**
 - Door/portal tiles loading different maps
 - Interior maps (buildings, caves)

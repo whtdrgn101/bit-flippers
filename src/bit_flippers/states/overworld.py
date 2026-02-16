@@ -11,6 +11,10 @@ from bit_flippers.settings import (
     MIN_STEPS_BETWEEN_ENCOUNTERS,
     SCRAP_BONUS_ITEM_CHANCE,
     PICKUP_MESSAGE_DURATION,
+    BASE_XP,
+    LEVEL_UP_HP_BONUS,
+    COLOR_XP_BAR,
+    COLOR_MONEY_TEXT,
 )
 from bit_flippers.camera import Camera
 from bit_flippers.tilemap import TileMap, DIRT, SCRAP
@@ -50,7 +54,13 @@ class OverworldState:
         self.held_direction = None
 
         # Player HP (persists across combats)
-        self.player_hp = PLAYER_MAX_HP
+        self.player_max_hp = PLAYER_MAX_HP
+        self.player_hp = self.player_max_hp
+
+        # Progression
+        self.player_level = 1
+        self.player_xp = 0
+        self.player_money = 0
 
         # Inventory
         self.inventory = Inventory()
@@ -205,8 +215,35 @@ class OverworldState:
             CombatState(self.game, enemy_npc["enemy_data"], self, self.inventory)
         )
 
-    def on_combat_victory(self):
+    def xp_to_next_level(self):
+        """XP required to advance from current level to the next."""
+        return self.player_level * BASE_XP
+
+    def _grant_rewards(self, enemy_data):
+        """Grant XP and money from a defeated enemy, handling multi-level-ups."""
+        self.player_xp += enemy_data.xp_reward
+        self.player_money += enemy_data.money_reward
+
+        # Level-up loop (supports multi-level-up from big XP rewards)
+        leveled = False
+        while self.player_xp >= self.xp_to_next_level():
+            self.player_xp -= self.xp_to_next_level()
+            self.player_level += 1
+            # Increase max HP by 2%, minimum +1
+            bonus = max(1, int(self.player_max_hp * LEVEL_UP_HP_BONUS))
+            self.player_max_hp += bonus
+            # Full heal on level up
+            self.player_hp = self.player_max_hp
+            leveled = True
+
+        if leveled:
+            self.pickup_message = f"Level up! Now level {self.player_level}!"
+            self.pickup_message_timer = PICKUP_MESSAGE_DURATION
+
+    def on_combat_victory(self, enemy_data=None):
         """Called by CombatState when the player wins."""
+        if enemy_data is not None:
+            self._grant_rewards(enemy_data)
         if self._current_scripted_enemy is not None:
             self._current_scripted_enemy["defeated"] = True
         self._current_scripted_enemy = None
@@ -327,24 +364,40 @@ class OverworldState:
     def _draw_hud(self, screen):
         x, y = 10, 10
         bar_width, bar_height = 100, 12
-        ratio = self.player_hp / PLAYER_MAX_HP
 
-        # Label
-        label = self.hud_font.render("HP", True, (255, 255, 255))
-        screen.blit(label, (x, y))
+        # Level label
+        level_label = self.hud_font.render(f"Lv {self.player_level}", True, (255, 255, 255))
+        screen.blit(level_label, (x, y))
+        y += 18
 
+        # HP bar
+        hp_ratio = self.player_hp / self.player_max_hp if self.player_max_hp > 0 else 0
+        hp_label = self.hud_font.render("HP", True, (255, 255, 255))
+        screen.blit(hp_label, (x, y))
         bar_x = x + 28
-        # Background
         pygame.draw.rect(screen, (60, 60, 60), (bar_x, y + 2, bar_width, bar_height))
-        # Fill
-        color = (80, 200, 80) if ratio > 0.5 else (200, 200, 40) if ratio > 0.25 else (200, 60, 60)
-        pygame.draw.rect(screen, color, (bar_x, y + 2, int(bar_width * ratio), bar_height))
-        # Border
+        hp_color = (80, 200, 80) if hp_ratio > 0.5 else (200, 200, 40) if hp_ratio > 0.25 else (200, 60, 60)
+        pygame.draw.rect(screen, hp_color, (bar_x, y + 2, int(bar_width * hp_ratio), bar_height))
         pygame.draw.rect(screen, (180, 180, 180), (bar_x, y + 2, bar_width, bar_height), 1)
-
-        # HP text
-        hp_text = self.hud_font.render(f"{self.player_hp}/{PLAYER_MAX_HP}", True, (255, 255, 255))
+        hp_text = self.hud_font.render(f"{self.player_hp}/{self.player_max_hp}", True, (255, 255, 255))
         screen.blit(hp_text, (bar_x + bar_width + 6, y + 1))
+        y += 18
+
+        # XP bar
+        xp_label = self.hud_font.render("XP", True, (255, 255, 255))
+        screen.blit(xp_label, (x, y))
+        xp_needed = self.xp_to_next_level()
+        xp_ratio = self.player_xp / xp_needed if xp_needed > 0 else 0
+        pygame.draw.rect(screen, (60, 60, 60), (bar_x, y + 2, bar_width, bar_height))
+        pygame.draw.rect(screen, COLOR_XP_BAR, (bar_x, y + 2, int(bar_width * xp_ratio), bar_height))
+        pygame.draw.rect(screen, (180, 180, 180), (bar_x, y + 2, bar_width, bar_height), 1)
+        xp_text = self.hud_font.render(f"{self.player_xp}/{xp_needed}", True, (255, 255, 255))
+        screen.blit(xp_text, (bar_x + bar_width + 6, y + 1))
+        y += 18
+
+        # Money line
+        money_label = self.hud_font.render(f"Scrap: {self.player_money}", True, COLOR_MONEY_TEXT)
+        screen.blit(money_label, (x, y))
 
         # Pickup notification
         if self.pickup_message:

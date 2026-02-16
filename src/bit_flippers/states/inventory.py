@@ -4,7 +4,6 @@ from bit_flippers.settings import (
     SCREEN_HEIGHT,
     COLOR_INVENTORY_BG,
     COLOR_ITEM_HIGHLIGHT,
-    PLAYER_MAX_HP,
 )
 from bit_flippers.items import ITEM_REGISTRY
 
@@ -70,12 +69,12 @@ class InventoryState:
             return
 
         if item.effect_type == "heal":
-            if self.overworld.player_hp >= PLAYER_MAX_HP:
+            if self.overworld.player_hp >= self.overworld.player_max_hp:
                 self.message = "HP is already full!"
                 self.message_timer = 1.5
                 return
             self.overworld.player_hp = min(
-                PLAYER_MAX_HP, self.overworld.player_hp + item.effect_value
+                self.overworld.player_max_hp, self.overworld.player_hp + item.effect_value
             )
             self.inventory.remove(item_name)
             self.message = f"Used {item_name}! HP restored."
