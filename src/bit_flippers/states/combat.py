@@ -2,8 +2,11 @@ import random
 from enum import Enum, auto
 
 import pygame
-from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE, COLOR_SP_BAR
-from bit_flippers.combat import create_enemy_combatant, CombatEntity
+from bit_flippers.settings import (
+    SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE, COLOR_SP_BAR,
+    COLOR_STATUS_POISON, COLOR_STATUS_STUN, COLOR_STATUS_BURN, COLOR_STATUS_DESPONDENT,
+)
+from bit_flippers.combat import create_enemy_combatant, CombatEntity, StatusEffect
 from bit_flippers.items import ITEM_REGISTRY
 from bit_flippers.player_stats import effective_attack, effective_defense, calc_hit_chance
 from bit_flippers.skills import SKILL_DEFS, calc_skill_effect
@@ -76,6 +79,19 @@ class CombatState:
         self.skill_list: list[str] = []  # list of skill_ids
         self.skill_index = 0
 
+        # Status effect tracking (per-combat)
+        self.player_statuses: list[StatusEffect] = []
+        self.enemy_statuses: list[StatusEffect] = []
+        self.burn_atk_reduction = 0  # track Burn ATK penalty separately
+
+        # Status color lookup
+        self._status_colors = {
+            "Poison": COLOR_STATUS_POISON,
+            "Stun": COLOR_STATUS_STUN,
+            "Burn": COLOR_STATUS_BURN,
+            "Despondent": COLOR_STATUS_DESPONDENT,
+        }
+
         # Enemy debuff tracking
         self.enemy_atk_debuff = 0
         self.enemy_def_debuff = 0
@@ -141,8 +157,11 @@ class CombatState:
 
     def _execute_player_action(self, action):
         if action == "Attack":
-            # Hit/miss check (include equipment dex bonus)
-            hit_chance = calc_hit_chance(self.player_stats.dexterity + self._eq_dex_bonus, self.enemy_data.dexterity)
+            # Hit/miss check (include equipment dex bonus, Despondent penalty)
+            player_dex = self.player_stats.dexterity + self._eq_dex_bonus
+            if self._has_status(self.player_statuses, "Despondent"):
+                player_dex -= 4
+            hit_chance = calc_hit_chance(player_dex, self.enemy_data.dexterity)
             if random.random() > hit_chance:
                 self.message = "Attack missed!"
                 self.defending = False
@@ -290,6 +309,13 @@ class CombatState:
                 self.message = f"{skill.name}! Enemy ATK-{value} for 3 turns."
             self.debuff_turns_remaining = 3
 
+        elif skill.effect_type == "cure_status":
+            if self.burn_atk_reduction > 0:
+                self.player.attack += self.burn_atk_reduction
+                self.burn_atk_reduction = 0
+            self.player_statuses.clear()
+            self.message = f"{skill.name}! Status effects cleared."
+
         self.phase = Phase.PLAYER_ATTACK
         self.phase_timer = 0.6
 
@@ -300,6 +326,81 @@ class CombatState:
         self.enemy_atk_debuff = 0
         self.enemy_def_debuff = 0
         self.debuff_turns_remaining = 0
+
+    def _has_status(self, statuses: list[StatusEffect], name: str) -> bool:
+        return any(s.name == name for s in statuses)
+
+    def _apply_status(self, target: str, effect_name: str):
+        """Apply a status effect to 'player' or 'enemy'. Refreshes duration if already present."""
+        durations = {"Poison": 3, "Stun": 1, "Burn": 3, "Despondent": 3}
+        duration = durations.get(effect_name, 3)
+
+        statuses = self.player_statuses if target == "player" else self.enemy_statuses
+
+        # Refresh if already present
+        for s in statuses:
+            if s.name == effect_name:
+                s.turns_remaining = duration
+                return
+
+        statuses.append(StatusEffect(name=effect_name, turns_remaining=duration))
+
+        # Burn: reduce ATK by 2
+        if effect_name == "Burn":
+            if target == "player":
+                self.burn_atk_reduction = 2
+                self.player.attack = max(0, self.player.attack - 2)
+            else:
+                self.enemy.attack = max(0, self.enemy.attack - 2)
+
+    def _tick_statuses(self):
+        """Process status effects at end of turn. Returns list of messages."""
+        messages = []
+
+        # --- Player statuses ---
+        expired_player = []
+        for s in self.player_statuses:
+            if s.name == "Poison":
+                self.player.hp = max(0, self.player.hp - 2)
+                messages.append("Poison dealt 2 damage!")
+            elif s.name == "Burn":
+                self.player.hp = max(0, self.player.hp - 1)
+                messages.append("Burn dealt 1 damage!")
+            # Stun and Despondent: no tick damage
+
+            s.turns_remaining -= 1
+            if s.turns_remaining <= 0:
+                expired_player.append(s.name)
+
+        for name in expired_player:
+            self.player_statuses = [s for s in self.player_statuses if s.name != name]
+            if name == "Burn":
+                self.player.attack += self.burn_atk_reduction
+                self.burn_atk_reduction = 0
+            messages.append(f"{name} wore off!")
+
+        # --- Enemy statuses ---
+        expired_enemy = []
+        for s in self.enemy_statuses:
+            if s.name == "Poison":
+                self.enemy.hp = max(0, self.enemy.hp - 2)
+                messages.append(f"{self.enemy.name} took 2 poison damage!")
+            elif s.name == "Burn":
+                self.enemy.hp = max(0, self.enemy.hp - 1)
+                messages.append(f"{self.enemy.name} took 1 burn damage!")
+
+            s.turns_remaining -= 1
+            if s.turns_remaining <= 0:
+                expired_enemy.append(s.name)
+
+        for name in expired_enemy:
+            self.enemy_statuses = [s for s in self.enemy_statuses if s.name != name]
+            if name == "Burn":
+                # Restore the 2 ATK that burn removed (capped at base)
+                self.enemy.attack = min(self._enemy_base_attack, self.enemy.attack + 2)
+            messages.append(f"{self.enemy.name}'s {name} wore off!")
+
+        return messages
 
     def _use_combat_item(self, item_name):
         item = ITEM_REGISTRY.get(item_name)
@@ -329,13 +430,59 @@ class CombatState:
             self.defense_buff += item.effect_value
             self.player.defense += item.effect_value
             self.message = f"Used {item_name}! Defense +{item.effect_value}."
+        elif item.effect_type == "cure_status":
+            # Restore Burn ATK reduction before clearing
+            if self.burn_atk_reduction > 0:
+                self.player.attack += self.burn_atk_reduction
+                self.burn_atk_reduction = 0
+            self.player_statuses.clear()
+            self.message = f"Used {item_name}! Status effects cleared."
 
         self.phase = Phase.PLAYER_ATTACK
         self.phase_timer = 0.6
 
     def _do_enemy_attack(self):
-        # Hit/miss check for enemy (include equipment dex bonus)
-        hit_chance = calc_hit_chance(self.enemy_data.dexterity, self.player_stats.dexterity + self._eq_dex_bonus)
+        # Check if enemy is stunned
+        if self._has_status(self.enemy_statuses, "Stun"):
+            self.enemy_statuses = [s for s in self.enemy_statuses if s.name != "Stun"]
+            self.message = f"{self.enemy.name} is stunned and can't move!"
+            self.defending = False
+            self.phase = Phase.ENEMY_ATTACK
+            self.phase_timer = 0.6
+            return
+
+        # Check for special ability
+        ability = self.enemy_data.ability
+        if ability and random.random() < ability["chance"]:
+            self._apply_status("player", ability["status_effect"])
+            # Deal half normal damage
+            half_damage = max(1, (self.enemy.attack - self.player.defense + random.randint(-1, 1)) // 2)
+            if self.defending:
+                half_damage = max(1, half_damage // 2)
+            self.player.hp = max(0, self.player.hp - half_damage)
+            self.game.audio.play_sfx("hit")
+            self.flash_target = "player"
+            self.flash_timer = 0.3
+            self.damage_text = f"-{half_damage}"
+            self.damage_text_timer = 1.0
+            self.damage_text_pos = (self.player_pos[0] + TILE_SIZE // 2, self.player_pos[1] - 10)
+            self.message = f"{ability['name']}! {ability['status_effect']} inflicted! -{half_damage} HP"
+            self.defending = False
+
+            if not self.player.is_alive:
+                self.phase = Phase.DEFEAT
+                self.message = "You were defeated..."
+                self.message_timer = 0.0
+            else:
+                self.phase = Phase.ENEMY_ATTACK
+                self.phase_timer = 0.6
+            return
+
+        # Normal attack — hit/miss check (include equipment dex bonus)
+        player_dex = self.player_stats.dexterity + self._eq_dex_bonus
+        if self._has_status(self.player_statuses, "Despondent"):
+            player_dex -= 4
+        hit_chance = calc_hit_chance(self.enemy_data.dexterity, player_dex)
         if random.random() > hit_chance:
             self.message = f"{self.enemy.name} missed!"
             self.defending = False
@@ -365,6 +512,13 @@ class CombatState:
     def _finish_combat(self):
         # Remove temporary defense buff before syncing
         self.player.defense -= self.defense_buff
+        # Remove Burn ATK reduction before syncing
+        if self.burn_atk_reduction > 0:
+            self.player.attack += self.burn_atk_reduction
+            self.burn_atk_reduction = 0
+        # Clear all status effects so nothing lingers
+        self.player_statuses.clear()
+        self.enemy_statuses.clear()
         # Sync HP back to overworld stats (subtract equipment max_hp bonus from combat HP)
         self.overworld.stats.current_hp = min(
             max(1, self.player.hp - self._eq_max_hp_bonus),
@@ -424,11 +578,24 @@ class CombatState:
         elif self.phase == Phase.ENEMY_ATTACK:
             self.phase_timer -= dt
             if self.phase_timer <= 0:
-                # Tick down debuffs
+                # Tick down skill debuffs
                 if self.debuff_turns_remaining > 0:
                     self.debuff_turns_remaining -= 1
                     if self.debuff_turns_remaining <= 0:
                         self._clear_enemy_debuffs()
+
+                # Tick status effects (DoT, expiry)
+                status_msgs = self._tick_statuses()
+
+                # Check for DoT deaths
+                if not self.enemy.is_alive:
+                    self._handle_enemy_defeated()
+                    return
+                if not self.player.is_alive:
+                    self.phase = Phase.DEFEAT
+                    self.message = "You were defeated..."
+                    self.message_timer = 0.0
+                    return
 
                 # SP regen: +1 per turn (cap at combat max_sp including equipment)
                 combat_max_sp = self.player_stats.max_sp + self._eq_max_sp_bonus
@@ -436,8 +603,22 @@ class CombatState:
                     combat_max_sp, self.player_stats.current_sp + 1
                 )
 
-                self.phase = Phase.CHOOSING
-                self.message = ""
+                # Show status tick messages if any
+                if status_msgs:
+                    self.message = " ".join(status_msgs)
+                else:
+                    self.message = ""
+
+                # Check for player stun — skip CHOOSING phase
+                if self._has_status(self.player_statuses, "Stun"):
+                    self.player_statuses = [s for s in self.player_statuses if s.name != "Stun"]
+                    self.message = "You are stunned and can't move!"
+                    self.defending = False
+                    # Go straight to enemy attack after a brief pause
+                    self.phase = Phase.PLAYER_ATTACK
+                    self.phase_timer = 0.6
+                else:
+                    self.phase = Phase.CHOOSING
 
     def draw(self, screen):
         # Dark background (full screen combat replaces overworld visually)
@@ -467,7 +648,7 @@ class CombatState:
             dmg_surf.set_alpha(alpha)
             screen.blit(dmg_surf, self.damage_text_pos)
 
-        # Debuff indicator on enemy
+        # Debuff indicator on enemy (skill-based)
         if self.debuff_turns_remaining > 0:
             debuff_parts = []
             if self.enemy_atk_debuff:
@@ -477,6 +658,26 @@ class CombatState:
             debuff_label = f"{' '.join(debuff_parts)} ({self.debuff_turns_remaining}t)"
             debuff_surf = self.font_small.render(debuff_label, True, (255, 120, 120))
             screen.blit(debuff_surf, (self.enemy_pos[0] - 10, self.enemy_pos[1] + TILE_SIZE * 2 + 5))
+
+        # Status effect indicators on player
+        status_y = self.player_pos[1] + TILE_SIZE * 2 + 5
+        for s in self.player_statuses:
+            color = self._status_colors.get(s.name, (200, 200, 200))
+            label = f"{s.name} ({s.turns_remaining}t)"
+            surf = self.font_small.render(label, True, color)
+            screen.blit(surf, (self.player_pos[0] - 10, status_y))
+            status_y += 16
+
+        # Status effect indicators on enemy
+        enemy_status_y = self.enemy_pos[1] + TILE_SIZE * 2 + 5
+        if self.debuff_turns_remaining > 0:
+            enemy_status_y += 16  # offset below skill debuff indicator
+        for s in self.enemy_statuses:
+            color = self._status_colors.get(s.name, (200, 200, 200))
+            label = f"{s.name} ({s.turns_remaining}t)"
+            surf = self.font_small.render(label, True, color)
+            screen.blit(surf, (self.enemy_pos[0] - 10, enemy_status_y))
+            enemy_status_y += 16
 
         # Message area
         if self.message:

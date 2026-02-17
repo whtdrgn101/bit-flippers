@@ -9,9 +9,9 @@ from bit_flippers.save import save_game
 NODE_W = 130
 NODE_H = 44
 COL_SPACING = 160
-ROW_SPACING = 100
+ROW_SPACING = 80
 TREE_X_OFFSET = (SCREEN_WIDTH - COL_SPACING * 2 - NODE_W) // 2
-TREE_Y_OFFSET = 80
+TREE_Y_OFFSET = 65
 
 # Colors
 COLOR_UNLOCKED = (60, 180, 80)

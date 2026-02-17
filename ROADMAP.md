@@ -164,13 +164,14 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Difficulty progression: Overworld → Factory → Scrap Cave → Reactor Core
 
 ## Milestone 16: Status Effects in Combat
-**Status: Not started**
-- Poison: damage over time for N turns
-- Stun: skip a turn
-- Burn: reduced attack + damage over time
-- Status effect icons/indicators in combat UI
-- Enemy abilities that inflict status effects
-- Items or skills that cure status effects
+**Status: Done**
+- 4 status effects: Poison (2 HP/turn, 3t), Stun (skip turn, 1t), Burn (ATK-2 + 1 HP/turn, 3t), Despondent (DEX-4, 3t, player only)
+- 6 enemy special abilities that inflict status effects (replace normal attack, deal half damage)
+- Colored status indicators with turn counts next to HP bars
+- Antidote Kit consumable (price 10) clears all player status effects
+- Re-applying same effect refreshes duration (no stacking)
+- DoT damage can kill combatants, triggering victory/defeat
+- Burn ATK reduction tracked separately from skill debuffs
 
 ## Milestone 17: Quest System + Robot NPC Sprites
 **Status: Done**

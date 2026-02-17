@@ -10,7 +10,7 @@ class SkillDef:
     name: str
     description: str
     sp_cost: int
-    effect_type: str  # "damage", "heal", "buff_defense", "drain", "debuff_attack"
+    effect_type: str  # "damage", "heal", "buff_defense", "drain", "debuff_attack", "cure_status"
     base_value: int
     stat_scaling: str  # "intelligence", "strength", "none"
     scaling_factor: float
@@ -42,6 +42,9 @@ def calc_skill_effect(skill: SkillDef, stats) -> int:
 #                |                 |                 |
 # Tier 2:  [Magnet Storm]   [Patchwork Heal]   [EMP Pulse]
 #             (col 0)           (col 1)           (col 2)
+#                                  |
+# Tier 3:                   [System Purge]
+#                               (col 1)
 
 SKILL_DEFS: dict[str, SkillDef] = {}
 
@@ -159,6 +162,21 @@ _SKILL_LIST = [
         tree_row=2,
         tree_col=2,
         prerequisites=["overclock"],
+        unlock_cost=2,
+    ),
+    # Tier 3
+    SkillDef(
+        skill_id="system_purge",
+        name="System Purge",
+        description="Flush corrupted data to clear all status effects.",
+        sp_cost=3,
+        effect_type="cure_status",
+        base_value=0,
+        stat_scaling="none",
+        scaling_factor=0,
+        tree_row=3,
+        tree_col=1,
+        prerequisites=["patchwork_heal"],
         unlock_cost=2,
     ),
 ]

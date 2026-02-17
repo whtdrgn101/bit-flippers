@@ -36,6 +36,13 @@ ITEM_REGISTRY: dict[str, Item] = {
         effect_value=8,
         price=12,
     ),
+    "Antidote Kit": Item(
+        name="Antidote Kit",
+        description="Clears all status effects.",
+        item_type="consumable",
+        effect_type="cure_status",
+        price=10,
+    ),
     "Iron Plating": Item(
         name="Iron Plating",
         description="Boosts defense by 3 for the current combat.",
@@ -122,7 +129,7 @@ ITEM_REGISTRY: dict[str, Item] = {
 }
 
 # Items available in the default shop (unlimited stock)
-SHOP_STOCK: list[str] = ["Repair Kit", "Voltage Spike", "Iron Plating", "Scrap Metal"]
+SHOP_STOCK: list[str] = ["Repair Kit", "Voltage Spike", "Iron Plating", "Antidote Kit", "Scrap Metal"]
 
 # Weaponsmith stock
 WEAPONSMITH_STOCK: list[str] = [
