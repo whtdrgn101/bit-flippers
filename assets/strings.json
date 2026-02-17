@@ -37,6 +37,11 @@
       "Welcome to my shop! Best repairs in the sector.",
       "I've got parts, tools, and know-how.",
       "Come back when you've got more scrap to trade!"
+    ],
+    "engineer_factory": [
+      "You made it past the Guardian? Impressive.",
+      "This factory still has working assembly lines...",
+      "Be careful deeper in. The Plasma Hounds hunt in packs."
     ]
   }
 }

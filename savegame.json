@@ -2,45 +2,37 @@
   "version": 1,
   "stats": {
     "max_hp": 30,
-    "max_sp": 12,
-    "strength": 10,
+    "max_sp": 10,
+    "strength": 6,
     "dexterity": 6,
-    "resilience": 4,
+    "resilience": 3,
     "constitution": 3,
     "intelligence": 3,
-    "level": 5,
-    "xp": 28,
-    "money": 126,
-    "unspent_points": 0,
-    "current_hp": 27,
-    "current_sp": 12
+    "level": 3,
+    "xp": 2,
+    "money": 23,
+    "unspent_points": 2,
+    "current_hp": 15,
+    "current_sp": 10
   },
   "skills": {
     "unlocked": [
-      "patchwork_heal",
-      "scrap_leech",
-      "shrapnel_blast",
-      "voltage_surge"
+      "shrapnel_blast"
     ],
-    "skill_points": 0
+    "skill_points": 1
   },
   "inventory": {
-    "Repair Kit": 3,
-    "Scrap Metal": 22,
-    "Voltage Spike": 2
+    "Repair Kit": 1,
+    "Scrap Metal": 12
   },
-  "current_map_id": "tinker_shop",
-  "player_x": 8,
-  "player_y": 2,
-  "player_facing": "right",
-  "steps_since_encounter": 39,
+  "current_map_id": "overworld",
+  "player_x": 37,
+  "player_y": 13,
+  "player_facing": "up",
+  "steps_since_encounter": 0,
   "map_persistence": {
     "overworld": {
       "collected_scrap": [
-        [
-          2,
-          14
-        ],
         [
           4,
           27
@@ -82,63 +74,17 @@
           24
         ],
         [
-          31,
-          6
-        ],
-        [
-          36,
-          2
-        ],
-        [
           36,
           19
-        ],
-        [
-          37,
-          12
         ],
         [
           37,
           27
         ]
       ],
-      "defeated_enemies": [
-        0,
-        1
-      ]
+      "defeated_enemies": []
     },
     "scrap_cave": {
-      "collected_scrap": [
-        [
-          2,
-          6
-        ],
-        [
-          7,
-          2
-        ],
-        [
-          8,
-          10
-        ],
-        [
-          12,
-          6
-        ],
-        [
-          17,
-          2
-        ],
-        [
-          17,
-          10
-        ]
-      ],
-      "defeated_enemies": [
-        0
-      ]
-    },
-    "tinker_shop": {
       "collected_scrap": [],
       "defeated_enemies": []
     }

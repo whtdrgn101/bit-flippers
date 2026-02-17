@@ -149,12 +149,12 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Equipment available from shops and rare scrap drops
 
 ## Milestone 15: More Enemy Types + Boss Encounters
-**Status: Not started**
-- New regular enemies with unique stat spreads and abilities
-- Boss encounters: unique tough enemies with special mechanics
-- Boss rooms or scripted boss triggers on specific maps
-- Boss-specific loot drops
-- Encounter table variety per map area
+**Status: Done**
+- 4 new regular enemies: Wire Spider, Slag Beetle, Plasma Hound, Core Leech
+- 2 boss enemies: Forge Guardian (overworld), Meltdown Warden (scrap cave)
+- Bosses placed on tiles guarding doors — block access until defeated
+- Per-map encounter table variety with new enemies
+- Difficulty progression: Overworld → Factory → Scrap Cave → Reactor Core
 
 ## Milestone 16: Status Effects in Combat
 **Status: Not started**
@@ -174,9 +174,9 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Quest completion rewards (Scrap, XP, items)
 
 ## Milestone 18: More Maps + Areas
-**Status: Not started**
-- Additional dungeon maps with unique tilesets and encounter tables
-- Overworld expansion with new regions and connecting doors
-- Environmental hazards or puzzle elements
-- Area-specific loot and enemy placement
-- Progressive difficulty across areas
+**Status: Done**
+- Scrap Factory (25x18): grey-blue floor, Wire Spider / Slag Beetle / Plasma Hound encounters, Engineer NPC
+- Reactor Core (18x14): dark purple floor, Core Leech / Volt Wraith / Plasma Hound encounters (hardest area)
+- Progression path: Overworld → Scrap Factory (via Forge Guardian), Scrap Cave → Reactor Core (via Meltdown Warden)
+- Per-area tile color overrides and tuned encounter chances
+- Boss-guarded doors connect areas with progressive difficulty
