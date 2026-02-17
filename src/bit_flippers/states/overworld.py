@@ -40,8 +40,8 @@ class OverworldState:
     def __init__(self, game):
         self.game = game
 
-        # Player stats (replaces flat hp/level/xp/money attributes)
-        self.stats = load_stats()
+        # Player stats and skills
+        self.stats, self.player_skills = load_stats()
 
         # Logical tile position
         self.player_x = 2
@@ -57,8 +57,9 @@ class OverworldState:
         self.move_timer = 0.0
         self.held_direction = None
 
-        # Inventory
+        # Inventory — start with a few healing items
         self.inventory = Inventory()
+        self.inventory.add("Repair Kit", 3)
 
         # Pickup notification
         self.pickup_message = ""
@@ -187,11 +188,14 @@ class OverworldState:
             elif event.key == pygame.K_SPACE:
                 self._try_interact()
             elif event.key == pygame.K_ESCAPE:
-                from bit_flippers.states.inventory import InventoryState
-                self.game.push_state(InventoryState(self.game, self.inventory, self))
+                from bit_flippers.states.pause_menu import PauseMenuState
+                self.game.push_state(PauseMenuState(self.game, self))
             elif event.key == pygame.K_c:
                 from bit_flippers.states.character import CharacterScreenState
-                self.game.push_state(CharacterScreenState(self.game, self.stats))
+                self.game.push_state(CharacterScreenState(self.game, self.stats, self.player_skills))
+            elif event.key == pygame.K_k:
+                from bit_flippers.states.skill_tree import SkillTreeState
+                self.game.push_state(SkillTreeState(self.game, self.player_skills, self.stats, self))
         elif event.type == pygame.KEYUP:
             if event.key == self.held_direction:
                 self.held_direction = None
@@ -237,7 +241,7 @@ class OverworldState:
         self._current_scripted_enemy = enemy_npc
         self.game.audio.stop_music()
         self.game.push_state(
-            CombatState(self.game, enemy_npc["enemy_data"], self, self.inventory)
+            CombatState(self.game, enemy_npc["enemy_data"], self, self.inventory, self.player_skills)
         )
 
     def xp_to_next_level(self):
@@ -246,6 +250,8 @@ class OverworldState:
 
     def _grant_rewards(self, enemy_data):
         """Grant XP and money from a defeated enemy, handling multi-level-ups."""
+        from bit_flippers.skills import skill_points_for_level
+
         self.stats.xp += enemy_data.xp_reward
         self.stats.money += enemy_data.money_reward
 
@@ -256,6 +262,9 @@ class OverworldState:
             self.stats.level += 1
             pts = points_for_level(self.stats.level)
             self.stats.unspent_points += pts
+            # Grant skill points
+            skill_pts = skill_points_for_level(self.stats.level)
+            self.player_skills.skill_points += skill_pts
             # Full heal on level up
             self.stats.current_hp = self.stats.max_hp
             self.stats.current_sp = self.stats.max_sp
@@ -266,7 +275,7 @@ class OverworldState:
             self.pickup_message_timer = PICKUP_MESSAGE_DURATION
 
         # Auto-save after rewards
-        save_stats(self.stats)
+        save_stats(self.stats, self.player_skills)
 
     def on_combat_victory(self, enemy_data=None):
         """Called by CombatState when the player wins."""
@@ -294,7 +303,7 @@ class OverworldState:
         enemy_data = ENEMY_TYPES[random.choice(map_def.encounter_table)]
         self.steps_since_encounter = 0
         self.game.audio.stop_music()
-        self.game.push_state(CombatState(self.game, enemy_data, self, self.inventory))
+        self.game.push_state(CombatState(self.game, enemy_data, self, self.inventory, self.player_skills))
 
     def _npc_at(self, tx, ty):
         """Check if any NPC (friendly or enemy) occupies the given tile."""
@@ -449,6 +458,14 @@ class OverworldState:
                 f"+{self.stats.unspent_points} pts [C]", True, (255, 220, 100)
             )
             screen.blit(pts_label, (x, y))
+            y += 18
+
+        # Skill points indicator
+        if self.player_skills.skill_points > 0:
+            skill_label = self.hud_font.render(
+                f"+{self.player_skills.skill_points} skill pts [K]", True, (100, 180, 255)
+            )
+            screen.blit(skill_label, (x, y))
             y += 18
 
         # Map name

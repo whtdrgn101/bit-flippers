@@ -9,9 +9,10 @@ from bit_flippers.player_stats import (
 
 
 class CharacterScreenState:
-    def __init__(self, game, stats: PlayerStats):
+    def __init__(self, game, stats: PlayerStats, player_skills=None):
         self.game = game
         self.stats = stats
+        self.player_skills = player_skills
         self.cursor = 0
 
         self.font_title = pygame.font.SysFont(None, 36)
@@ -26,7 +27,7 @@ class CharacterScreenState:
             return
 
         if event.key == pygame.K_ESCAPE:
-            save_stats(self.stats)
+            save_stats(self.stats, self.player_skills)
             self.game.pop_state()
         elif event.key == pygame.K_UP:
             self.cursor = (self.cursor - 1) % len(STAT_ORDER)

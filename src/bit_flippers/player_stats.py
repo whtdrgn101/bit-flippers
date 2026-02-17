@@ -111,19 +111,30 @@ STAT_DISPLAY_NAMES: dict[str, str] = {
 # JSON persistence
 # ---------------------------------------------------------------------------
 
-def save_stats(stats: PlayerStats, path: str | None = None) -> None:
-    """Save player stats to JSON."""
+def save_stats(stats: PlayerStats, player_skills=None, path: str | None = None) -> None:
+    """Save player stats (and optionally skills) to JSON."""
     p = path or _SAVE_PATH
+    data = asdict(stats)
+    if player_skills is not None:
+        data["skills"] = player_skills.to_dict()
     with open(p, "w") as f:
-        json.dump(asdict(stats), f, indent=2)
+        json.dump(data, f, indent=2)
 
 
-def load_stats(path: str | None = None) -> PlayerStats:
-    """Load player stats from JSON, returning defaults on error."""
+def load_stats(path: str | None = None):
+    """Load player stats and skills from JSON.
+
+    Returns (PlayerStats, PlayerSkills) tuple.  Defaults on error.
+    """
+    from bit_flippers.skills import PlayerSkills
+
     p = path or _SAVE_PATH
     try:
         with open(p, "r") as f:
             data = json.load(f)
-        return PlayerStats(**{k: v for k, v in data.items() if k in PlayerStats.__dataclass_fields__})
+        skills_data = data.pop("skills", None)
+        stats = PlayerStats(**{k: v for k, v in data.items() if k in PlayerStats.__dataclass_fields__})
+        player_skills = PlayerSkills.from_dict(skills_data) if skills_data else PlayerSkills()
+        return stats, player_skills
     except (FileNotFoundError, json.JSONDecodeError, TypeError):
-        return PlayerStats()
+        return PlayerStats(), PlayerSkills()

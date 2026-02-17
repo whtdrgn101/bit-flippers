@@ -94,16 +94,29 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Removed deprecated flat constants (PLAYER_ATTACK, PLAYER_DEFENSE, PLAYER_MAX_HP, LEVEL_UP_HP_BONUS)
 
 ## Milestone 11: Skills System + Skill Tree
-**Status: Not started**
-- Skill data model (name, SP cost, effect, stat scaling, tree position)
-- Skill tree UI with unlock paths and prerequisites
-- Initial skill set themed around scavenging and improvised combat:
-  - Use scrap and environmental resources for special attacks
-  - Craft-on-the-fly abilities (e.g., shrapnel blast, jury-rig shield)
-- "Skills" option added to combat action menu (alongside Attack, Defend, Item, Flee)
-- Skills consume SP; SP regeneration or restoration mechanics
-- Skill unlock points earned on level-up or via story progression
-- Intelligence stat scales skill damage/effectiveness
+**Status: Done**
+- SkillDef data model with name, SP cost, effect type, base value, stat scaling, tree position, prerequisites, unlock cost
+- 8 skills in a 3-tier tree with two branches converging:
+  - Tier 0: Shrapnel Blast (damage), Jury-Rig Shield (buff defense)
+  - Tier 1: Voltage Surge (damage), Scrap Leech (drain), Overclock (debuff attack)
+  - Tier 2: Magnet Storm (damage), Patchwork Heal (heal), EMP Pulse (debuff ATK+DEF)
+- Skill tree UI (`K` key) with node visualization, cursor navigation, and unlock mechanics
+- "Skill" option added to combat menu (Attack, Defend, Skill, Item, Flee)
+- Skills consume SP; +1 SP regen per combat turn
+- Skill points earned on level-up (1/level + bonus every 5th level)
+- Intelligence and strength stats scale skill effects via calc_skill_effect
+- Enemy debuff system: ATK/DEF reduction for 3 turns with auto-restore
+- Drain skill type: damages enemy and heals player for same amount
+- Skills data persisted in player_stats.json alongside stats
+- Backward-compatible save/load (graceful defaults for missing skills data)
+
+## Polish: Death Screen + Pause Menu
+**Status: Done**
+- Death screen overlay on defeat: "YOU WERE DEFEATED" with penalty summary
+- Death penalties: lose half scrap, respawn at half max HP, SP fully restored
+- Auto-save after death penalties applied
+- Pause menu (ESC key) with Resume, Inventory, Character, Skill Tree, and Quit Game options
+- Quit Game option for clean exit from keyboard
 
 ## Milestone 12: Save Game System
 **Status: Not started**
