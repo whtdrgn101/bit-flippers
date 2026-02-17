@@ -37,6 +37,15 @@ class EnemyNPCDef:
 
 
 @dataclass
+class IconMarker:
+    """A branding icon drawn on a wall tile."""
+    x: int
+    y: int
+    icon_type: str  # "sword" or "shield"
+    color: tuple[int, int, int] = (255, 255, 255)
+
+
+@dataclass
 class MapDef:
     """Full definition of a game map."""
     map_id: str
@@ -51,6 +60,7 @@ class MapDef:
     encounter_chance: float = 0.0
     music_track: str = "overworld"
     tile_colors_override: dict | None = None
+    icon_markers: list[IconMarker] = field(default_factory=list)
 
 
 @dataclass
@@ -81,8 +91,8 @@ _OVERWORLD_GRID = [
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
     [1,0,2,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,2,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,1,1,1,1,3,1,1],
+    [1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,0,0,0,0,0,0,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,3,1,0,0,0,0,0,0,1,1,1,3,1,0,0,0,0,0,1,1,1,1,3,1,1],
     [1,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
     [1,0,0,0,0,1,1,3,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,2,0,0,1],
@@ -166,6 +176,30 @@ _REACTOR_CORE_GRID = [
     [1,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ]
+
+_VOLT_FORGE_GRID = [
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,3,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1],
+]
+
+_IRON_SHELL_GRID = [
+    [1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,3,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1],
+]
 # fmt: on
 
 # ---------------------------------------------------------------------------
@@ -206,10 +240,16 @@ MAP_REGISTRY: dict[str, MapDef] = {
             DoorDef(7, 18, "tinker_shop", 5, 7, "up"),
             DoorDef(32, 28, "scrap_cave", 2, 13, "up"),
             DoorDef(37, 17, "scrap_factory", 12, 15, "up"),
+            DoorDef(15, 16, "volt_forge", 5, 6, "up"),
+            DoorDef(26, 16, "iron_shell", 5, 6, "up"),
         ],
         encounter_table=["Scrap Rat", "Scrap Rat", "Wire Spider", "Rust Golem"],
         encounter_chance=0.05,
         music_track="overworld",
+        icon_markers=[
+            IconMarker(14, 15, "sword", (255, 160, 60)),
+            IconMarker(25, 15, "shield", (80, 160, 255)),
+        ],
     ),
     "tinker_shop": MapDef(
         map_id="tinker_shop",
@@ -291,5 +331,47 @@ MAP_REGISTRY: dict[str, MapDef] = {
         encounter_chance=0.07,
         music_track="overworld",
         tile_colors_override={0: (50, 40, 60)},  # dark purple reactor floor
+    ),
+    "volt_forge": MapDef(
+        map_id="volt_forge",
+        display_name="Volt's Forge",
+        grid=_VOLT_FORGE_GRID,
+        player_start_x=5,
+        player_start_y=6,
+        npcs=[
+            NPCDef(
+                4, 2, "Weaponsmith", "weaponsmith",
+                color=(220, 140, 50), facing="down",
+            ),
+        ],
+        enemies=[],
+        doors=[
+            DoorDef(5, 7, "overworld", 15, 17, "down"),
+        ],
+        encounter_table=[],
+        encounter_chance=0.0,
+        music_track="overworld",
+        tile_colors_override={0: (140, 100, 50)},  # warm orange floor
+    ),
+    "iron_shell": MapDef(
+        map_id="iron_shell",
+        display_name="Iron Shell Outfitters",
+        grid=_IRON_SHELL_GRID,
+        player_start_x=5,
+        player_start_y=6,
+        npcs=[
+            NPCDef(
+                4, 2, "Armorsmith", "armorsmith",
+                color=(80, 120, 200), facing="down",
+            ),
+        ],
+        enemies=[],
+        doors=[
+            DoorDef(5, 7, "overworld", 26, 17, "down"),
+        ],
+        encounter_table=[],
+        encounter_chance=0.0,
+        music_track="overworld",
+        tile_colors_override={0: (60, 80, 120)},  # cool blue floor
     ),
 }

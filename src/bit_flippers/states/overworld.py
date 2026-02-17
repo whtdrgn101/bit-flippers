@@ -19,7 +19,7 @@ from bit_flippers.camera import Camera
 from bit_flippers.tilemap import TileMap, DIRT, SCRAP, DOOR
 from bit_flippers.sprites import create_placeholder_npc, load_player
 from bit_flippers.npc import make_npc
-from bit_flippers.items import Inventory
+from bit_flippers.items import Inventory, Equipment, WEAPONSMITH_STOCK, ARMORSMITH_STOCK
 from bit_flippers.maps import MAP_REGISTRY, MapPersistence
 from bit_flippers.player_stats import PlayerStats, points_for_level
 from bit_flippers.save import save_game
@@ -72,6 +72,7 @@ class OverworldState:
         self.stats = PlayerStats()
         self.player_skills = PlayerSkills()
         self.inventory = Inventory()
+        self.equipment = Equipment()
         self.inventory.add("Repair Kit", 3)
         self.player_x = 2
         self.player_y = 2
@@ -101,6 +102,10 @@ class OverworldState:
         # Inventory
         inv_data = save_data.get("inventory")
         self.inventory = Inventory.from_dict(inv_data) if inv_data else Inventory()
+
+        # Equipment
+        eq_data = save_data.get("equipment")
+        self.equipment = Equipment.from_dict(eq_data) if eq_data else Equipment()
 
         # Position
         self.current_map_id = save_data.get("current_map_id", "overworld")
@@ -232,6 +237,9 @@ class OverworldState:
             elif event.key == pygame.K_ESCAPE:
                 from bit_flippers.states.pause_menu import PauseMenuState
                 self.game.push_state(PauseMenuState(self.game, self))
+            elif event.key == pygame.K_i:
+                from bit_flippers.states.inventory import InventoryState
+                self.game.push_state(InventoryState(self.game, self.inventory, self))
             elif event.key == pygame.K_c:
                 from bit_flippers.states.character import CharacterScreenState
                 self.game.push_state(CharacterScreenState(self.game, self.stats, self.player_skills, self))
@@ -262,8 +270,21 @@ class OverworldState:
         for npc in self.npcs:
             if npc.tile_x == target_x and npc.tile_y == target_y:
                 from bit_flippers.states.dialogue import DialogueState
+                on_close = None
+                if npc.name == "Shopkeeper":
+                    def on_close(_ow=self):
+                        from bit_flippers.states.shop import ShopState
+                        _ow.game.push_state(ShopState(_ow.game, _ow))
+                elif npc.name == "Weaponsmith":
+                    def on_close(_ow=self):
+                        from bit_flippers.states.shop import ShopState
+                        _ow.game.push_state(ShopState(_ow.game, _ow, stock_list=WEAPONSMITH_STOCK))
+                elif npc.name == "Armorsmith":
+                    def on_close(_ow=self):
+                        from bit_flippers.states.shop import ShopState
+                        _ow.game.push_state(ShopState(_ow.game, _ow, stock_list=ARMORSMITH_STOCK))
                 self.game.push_state(
-                    DialogueState(self.game, npc.name, npc.dialogue_lines)
+                    DialogueState(self.game, npc.name, npc.dialogue_lines, on_close=on_close)
                 )
                 return
 
@@ -412,8 +433,32 @@ class OverworldState:
             self.tilemap.height_px,
         )
 
+    def _draw_icon_markers(self, screen):
+        """Draw branding icons on wall tiles adjacent to shop doors."""
+        map_def = MAP_REGISTRY.get(self.current_map_id)
+        if not map_def or not map_def.icon_markers:
+            return
+        for marker in map_def.icon_markers:
+            world_rect = pygame.Rect(
+                marker.x * TILE_SIZE, marker.y * TILE_SIZE, TILE_SIZE, TILE_SIZE
+            )
+            sr = self.camera.apply(world_rect)
+            cx, cy = sr.centerx, sr.centery
+            c = marker.color
+            if marker.icon_type == "sword":
+                # Simple sword: vertical blade + crossguard
+                pygame.draw.line(screen, c, (cx, cy - 7), (cx, cy + 7), 2)
+                pygame.draw.line(screen, c, (cx - 4, cy - 2), (cx + 4, cy - 2), 2)
+                pygame.draw.line(screen, c, (cx - 1, cy + 7), (cx + 1, cy + 7), 2)
+            elif marker.icon_type == "shield":
+                # Simple shield: rounded rect outline
+                shield_rect = pygame.Rect(cx - 5, cy - 6, 10, 12)
+                pygame.draw.rect(screen, c, shield_rect, 2, border_radius=3)
+                pygame.draw.line(screen, c, (cx, cy - 4), (cx, cy + 4), 2)
+
     def draw(self, screen):
         self.tilemap.draw(screen, self.camera)
+        self._draw_icon_markers(screen)
 
         # Draw friendly NPCs
         for npc in self.npcs:

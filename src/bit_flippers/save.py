@@ -16,11 +16,13 @@ def save_game(overworld) -> None:
     overworld._save_current_persistence()
 
     stats = overworld.stats
+    equipment = getattr(overworld, "equipment", None)
     data = {
         "version": _SAVE_VERSION,
         "stats": asdict(stats),
         "skills": overworld.player_skills.to_dict(),
         "inventory": overworld.inventory.to_dict(),
+        "equipment": equipment.to_dict() if equipment else {},
         "current_map_id": overworld.current_map_id,
         "player_x": overworld.player_x,
         "player_y": overworld.player_y,

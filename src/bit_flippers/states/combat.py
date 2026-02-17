@@ -41,14 +41,27 @@ class CombatState:
 
         stats = overworld.stats
         self.player_stats = stats
+        self.equipment = getattr(overworld, "equipment", None)
+
+        # Apply equipment bonuses to max_hp/max_sp/dex/int for combat
+        eq_bonuses = self.equipment.get_total_bonuses() if self.equipment else {}
+        combat_max_hp = stats.max_hp + eq_bonuses.get("max_hp", 0)
+        combat_max_sp = stats.max_sp + eq_bonuses.get("max_sp", 0)
+        combat_hp = min(stats.current_hp + eq_bonuses.get("max_hp", 0), combat_max_hp)
+
         self.player = CombatEntity(
             name="Player",
-            hp=stats.current_hp,
-            max_hp=stats.max_hp,
-            attack=effective_attack(stats),
-            defense=effective_defense(stats),
+            hp=combat_hp,
+            max_hp=combat_max_hp,
+            attack=effective_attack(stats, self.equipment),
+            defense=effective_defense(stats, self.equipment),
             sprite=load_player(),
         )
+        # Store bonus max_sp/dex for combat calculations
+        self._eq_max_sp_bonus = eq_bonuses.get("max_sp", 0)
+        self._eq_dex_bonus = eq_bonuses.get("dexterity", 0)
+        self._eq_int_bonus = eq_bonuses.get("intelligence", 0)
+        self._eq_max_hp_bonus = eq_bonuses.get("max_hp", 0)
 
         self.phase = Phase.CHOOSING
         self.menu_index = 0
@@ -128,8 +141,8 @@ class CombatState:
 
     def _execute_player_action(self, action):
         if action == "Attack":
-            # Hit/miss check
-            hit_chance = calc_hit_chance(self.player_stats.dexterity, self.enemy_data.dexterity)
+            # Hit/miss check (include equipment dex bonus)
+            hit_chance = calc_hit_chance(self.player_stats.dexterity + self._eq_dex_bonus, self.enemy_data.dexterity)
             if random.random() > hit_chance:
                 self.message = "Attack missed!"
                 self.defending = False
@@ -217,7 +230,11 @@ class CombatState:
         self.player_stats.current_sp -= skill.sp_cost
         self.defending = False
 
-        value = calc_skill_effect(skill, self.player_stats)
+        # Use a copy of stats with equipment bonuses for skill calculation
+        from copy import copy
+        combat_stats = copy(self.player_stats)
+        combat_stats.intelligence += self._eq_int_bonus
+        value = calc_skill_effect(skill, combat_stats)
 
         if skill.effect_type == "damage":
             self.enemy.hp = max(0, self.enemy.hp - value)
@@ -317,8 +334,8 @@ class CombatState:
         self.phase_timer = 0.6
 
     def _do_enemy_attack(self):
-        # Hit/miss check for enemy
-        hit_chance = calc_hit_chance(self.enemy_data.dexterity, self.player_stats.dexterity)
+        # Hit/miss check for enemy (include equipment dex bonus)
+        hit_chance = calc_hit_chance(self.enemy_data.dexterity, self.player_stats.dexterity + self._eq_dex_bonus)
         if random.random() > hit_chance:
             self.message = f"{self.enemy.name} missed!"
             self.defending = False
@@ -348,8 +365,11 @@ class CombatState:
     def _finish_combat(self):
         # Remove temporary defense buff before syncing
         self.player.defense -= self.defense_buff
-        # Sync HP and SP back to overworld stats
-        self.overworld.stats.current_hp = self.player.hp
+        # Sync HP back to overworld stats (subtract equipment max_hp bonus from combat HP)
+        self.overworld.stats.current_hp = min(
+            max(1, self.player.hp - self._eq_max_hp_bonus),
+            self.overworld.stats.max_hp,
+        )
         self.overworld.stats.current_sp = self.player_stats.current_sp
 
         from bit_flippers.maps import MAP_REGISTRY
@@ -410,9 +430,10 @@ class CombatState:
                     if self.debuff_turns_remaining <= 0:
                         self._clear_enemy_debuffs()
 
-                # SP regen: +1 per turn
+                # SP regen: +1 per turn (cap at combat max_sp including equipment)
+                combat_max_sp = self.player_stats.max_sp + self._eq_max_sp_bonus
                 self.player_stats.current_sp = min(
-                    self.player_stats.max_sp, self.player_stats.current_sp + 1
+                    combat_max_sp, self.player_stats.current_sp + 1
                 )
 
                 self.phase = Phase.CHOOSING
@@ -521,11 +542,12 @@ class CombatState:
     def _draw_sp_bar(self, screen, x, y, width):
         """Draw player SP bar in combat."""
         bar_height = 6
-        ratio = self.player_stats.current_sp / self.player_stats.max_sp if self.player_stats.max_sp > 0 else 0
+        combat_max_sp = self.player_stats.max_sp + self._eq_max_sp_bonus
+        ratio = self.player_stats.current_sp / combat_max_sp if combat_max_sp > 0 else 0
         pygame.draw.rect(screen, (40, 40, 40), (x, y, width, bar_height))
         pygame.draw.rect(screen, COLOR_SP_BAR, (x, y, int(width * ratio), bar_height))
         pygame.draw.rect(screen, (140, 140, 140), (x, y, width, bar_height), 1)
-        sp_text = self.font_small.render(f"SP {self.player_stats.current_sp}/{self.player_stats.max_sp}", True, (180, 200, 255))
+        sp_text = self.font_small.render(f"SP {self.player_stats.current_sp}/{combat_max_sp}", True, (180, 200, 255))
         screen.blit(sp_text, (x + width + 4, y - 2))
 
     def _draw_menu(self, screen):

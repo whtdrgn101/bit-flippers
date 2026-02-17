@@ -6,6 +6,7 @@ from bit_flippers.player_stats import (
     STAT_ORDER, STAT_POINT_VALUES, STAT_DESCRIPTIONS, STAT_DISPLAY_NAMES,
     effective_attack, effective_defense,
 )
+from bit_flippers.items import ITEM_REGISTRY
 from bit_flippers.save import save_game
 
 
@@ -78,10 +79,14 @@ class CharacterScreenState:
         )
         screen.blit(info, (SCREEN_WIDTH // 2 - info.get_width() // 2, 82))
 
+        # Get equipment bonuses
+        equipment = getattr(self.overworld, "equipment", None) if self.overworld else None
+        eq_bonuses = equipment.get_total_bonuses() if equipment else {}
+
         # Stat list
         list_x = 80
         list_y = 115
-        row_height = 32
+        row_height = 28
 
         for i, stat_key in enumerate(STAT_ORDER):
             is_selected = i == self.cursor
@@ -99,8 +104,11 @@ class CharacterScreenState:
 
             # Stat name and value
             label = f"{prefix}{display_name}: {value}"
+            bonus = eq_bonuses.get(stat_key, 0)
+            if bonus > 0:
+                label += f" (+{bonus})"
             if self.stats.unspent_points > 0:
-                label += f"  (+{increment})"
+                label += f"  [+{increment}]"
 
             text = self.font_stat.render(label, True, color)
             screen.blit(text, (list_x, list_y + i * row_height))
@@ -109,17 +117,40 @@ class CharacterScreenState:
         selected_key = STAT_ORDER[self.cursor]
         desc_text = STAT_DESCRIPTIONS.get(selected_key, "")
         desc_surf = self.font_desc.render(desc_text, True, (180, 180, 180))
-        screen.blit(desc_surf, (80, list_y + len(STAT_ORDER) * row_height + 20))
+        screen.blit(desc_surf, (80, list_y + len(STAT_ORDER) * row_height + 10))
 
-        # Derived stats
-        derived_y = list_y + len(STAT_ORDER) * row_height + 50
-        atk = effective_attack(self.stats)
-        dfn = effective_defense(self.stats)
+        # Derived stats (including equipment bonuses)
+        derived_y = list_y + len(STAT_ORDER) * row_height + 32
+        atk = effective_attack(self.stats, equipment)
+        dfn = effective_defense(self.stats, equipment)
         derived = self.font_desc.render(
             f"Attack: {atk}   Defense: {dfn}   HP: {self.stats.current_hp}/{self.stats.max_hp}   SP: {self.stats.current_sp}/{self.stats.max_sp}",
             True, (160, 200, 160),
         )
         screen.blit(derived, (80, derived_y))
+
+        # Equipment section
+        eq_y = derived_y + 28
+        eq_title = self.font_desc.render("Equipment:", True, (180, 180, 220))
+        screen.blit(eq_title, (80, eq_y))
+        eq_y += 20
+        slot_names = {"weapon": "Weapon", "armor": "Armor", "accessory": "Accessory"}
+        for slot_key, slot_label in slot_names.items():
+            equipped_name = equipment.slots.get(slot_key) if equipment else None
+            if equipped_name:
+                item = ITEM_REGISTRY.get(equipped_name)
+                bonus_str = ""
+                if item and item.stat_bonuses:
+                    parts = [f"{STAT_DISPLAY_NAMES.get(k, k)}+{v}" for k, v in item.stat_bonuses.items()]
+                    bonus_str = f"  ({', '.join(parts)})"
+                text = f"  {slot_label}: {equipped_name}{bonus_str}"
+                color = (180, 220, 180)
+            else:
+                text = f"  {slot_label}: ---"
+                color = (120, 120, 120)
+            slot_surf = self.font_desc.render(text, True, color)
+            screen.blit(slot_surf, (80, eq_y))
+            eq_y += 18
 
         # Controls hint
         hint = self.font_desc.render(

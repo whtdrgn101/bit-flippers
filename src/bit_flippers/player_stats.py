@@ -30,14 +30,20 @@ class PlayerStats:
 # Combat formula functions
 # ---------------------------------------------------------------------------
 
-def effective_attack(stats: PlayerStats) -> int:
+def effective_attack(stats: PlayerStats, equipment=None) -> int:
     """Derive attack power from stats. At level 1: 3 + 5 = 8 (matches original)."""
-    return 3 + stats.strength
+    bonus = 0
+    if equipment is not None:
+        bonus = equipment.get_total_bonuses().get("strength", 0)
+    return 3 + stats.strength + bonus
 
 
-def effective_defense(stats: PlayerStats) -> int:
+def effective_defense(stats: PlayerStats, equipment=None) -> int:
     """Derive defense from stats. At level 1: 3 (matches original)."""
-    return stats.resilience
+    bonus = 0
+    if equipment is not None:
+        bonus = equipment.get_total_bonuses().get("resilience", 0)
+    return stats.resilience + bonus
 
 
 def calc_hit_chance(attacker_dex: int, defender_dex: int) -> float:

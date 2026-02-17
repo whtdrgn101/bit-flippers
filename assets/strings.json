@@ -35,13 +35,20 @@
     ],
     "shopkeeper": [
       "Welcome to my shop! Best repairs in the sector.",
-      "I've got parts, tools, and know-how.",
-      "Come back when you've got more scrap to trade!"
+      "Take a look at what I've got!"
     ],
     "engineer_factory": [
       "You made it past the Guardian? Impressive.",
       "This factory still has working assembly lines...",
       "Be careful deeper in. The Plasma Hounds hunt in packs."
+    ],
+    "weaponsmith": [
+      "Finest blades this side of the wastes.",
+      "Every edge has a story. Pick yours."
+    ],
+    "armorsmith": [
+      "Protection is everything out here.",
+      "Let me outfit you properly."
     ]
   }
 }

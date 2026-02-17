@@ -132,21 +132,28 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Scrap tile pickup now awards Scrap currency in addition to inventory item
 
 ## Milestone 13: Shop System
-**Status: Not started**
+**Status: Done**
 - Buy/sell interface at the Shopkeeper NPC in Tinker's Shop
-- Item price data added to Item definitions
-- Sell items from inventory for Scrap currency
-- Buy consumables and materials with Scrap
-- Shop UI with item list, prices, and player Scrap balance
-- Confirmation prompt before purchase
+- Item prices: Scrap Metal (2), Repair Kit (8), Iron Plating (10), Voltage Spike (12)
+- Sell price = buy price // 2 (standard RPG convention)
+- Two-tab shop UI (Buy/Sell) with cursor navigation and scroll support
+- Buy confirmation prompt; instant sell (one unit per press)
+- Scrap balance displayed in shop; auto-save on close
+- Shopkeeper dialogue triggers shop on close via on_close callback
 
 ## Milestone 14: Equipment System
-**Status: Not started**
+**Status: Done**
 - Equipment slots: Weapon, Armor, Accessory
-- Equipment items with stat modifiers (attack, defense, etc.)
-- Equip/unequip from inventory or character screen
-- Equipment stats reflected in combat formulas
-- Equipment available from shops and rare scrap drops
+- 12 equipment items across 4 tiers (Bronze, Silver, Titanium, Palladium) with sci-fi names
+- Weapons boost ATK (+2/+4/+7/+11), Armor boosts DEF (+2/+4/+7/+11), Accessories give varied bonuses (HP, DEX, SP, INT)
+- Equip/unequip from inventory via ENTER key, [E] marker on equipped items
+- Equipment stat bonuses reflected in combat formulas (attack, defense, hit chance, skill damage, max HP/SP)
+- Equipment section on character screen showing equipped items and stat bonuses
+- Two new shop NPCs: Weaponsmith ("Volt's Forge") and Armorsmith ("Iron Shell Outfitters")
+- New interior maps with warm orange / cool blue floor tints
+- Branding icons (sword/shield) on overworld wall tiles adjacent to shop doors
+- Equipment persisted in savegame.json (backward-compatible, defaults to empty slots)
+- Selling equipped items auto-unequips them
 
 ## Milestone 15: More Enemy Types + Boss Encounters
 **Status: Done**

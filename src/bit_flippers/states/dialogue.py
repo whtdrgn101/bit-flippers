@@ -10,10 +10,11 @@ from bit_flippers.settings import (
 
 
 class DialogueState:
-    def __init__(self, game, npc_name, lines):
+    def __init__(self, game, npc_name, lines, on_close=None):
         self.game = game
         self.npc_name = npc_name
         self.lines = lines
+        self.on_close = on_close
         self.line_index = 0
         self.chars_revealed = 0.0
         self.fully_revealed = False
@@ -47,6 +48,8 @@ class DialogueState:
                 self.line_index += 1
                 if self.line_index >= len(self.lines):
                     self.game.pop_state()
+                    if self.on_close:
+                        self.on_close()
                 else:
                     self.chars_revealed = 0.0
                     self.fully_revealed = False

@@ -8,10 +8,10 @@
     "resilience": 3,
     "constitution": 3,
     "intelligence": 3,
-    "level": 3,
-    "xp": 2,
-    "money": 23,
-    "unspent_points": 2,
+    "level": 2,
+    "xp": 26,
+    "money": 8,
+    "unspent_points": 0,
     "current_hp": 15,
     "current_sp": 10
   },
@@ -19,24 +19,26 @@
     "unlocked": [
       "shrapnel_blast"
     ],
-    "skill_points": 1
+    "skill_points": 0
   },
   "inventory": {
-    "Repair Kit": 1,
-    "Scrap Metal": 12
+    "Repair Kit": 3,
+    "Scrap Metal": 5,
+    "Iron Plating": 1
   },
-  "current_map_id": "overworld",
-  "player_x": 37,
-  "player_y": 13,
-  "player_facing": "up",
-  "steps_since_encounter": 0,
+  "equipment": {
+    "weapon": null,
+    "armor": null,
+    "accessory": null
+  },
+  "current_map_id": "iron_shell",
+  "player_x": 5,
+  "player_y": 2,
+  "player_facing": "left",
+  "steps_since_encounter": 27,
   "map_persistence": {
     "overworld": {
       "collected_scrap": [
-        [
-          4,
-          27
-        ],
         [
           6,
           8
@@ -50,41 +52,34 @@
           4
         ],
         [
-          15,
-          24
-        ],
-        [
-          16,
-          3
-        ],
-        [
           16,
           15
-        ],
-        [
-          21,
-          6
-        ],
-        [
-          22,
-          25
-        ],
-        [
-          29,
-          24
-        ],
-        [
-          36,
-          19
-        ],
-        [
-          37,
-          27
         ]
       ],
       "defeated_enemies": []
     },
+    "tinker_shop": {
+      "collected_scrap": [],
+      "defeated_enemies": []
+    },
     "scrap_cave": {
+      "collected_scrap": [
+        [
+          17,
+          10
+        ]
+      ],
+      "defeated_enemies": []
+    },
+    "reactor_core": {
+      "collected_scrap": [],
+      "defeated_enemies": []
+    },
+    "volt_forge": {
+      "collected_scrap": [],
+      "defeated_enemies": []
+    },
+    "iron_shell": {
       "collected_scrap": [],
       "defeated_enemies": []
     }

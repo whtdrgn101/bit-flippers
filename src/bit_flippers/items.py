@@ -1,13 +1,16 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
 class Item:
     name: str
     description: str
-    item_type: str  # "consumable" or "material"
+    item_type: str  # "consumable", "material", or "equipment"
     effect_type: str | None = None  # "heal", "damage", "buff_defense", or None
     effect_value: int = 0
+    price: int = 0  # buy price; sell price = price // 2
+    slot: str | None = None  # "weapon", "armor", "accessory" (equipment only)
+    stat_bonuses: dict[str, int] = field(default_factory=dict)
 
 
 ITEM_REGISTRY: dict[str, Item] = {
@@ -15,6 +18,7 @@ ITEM_REGISTRY: dict[str, Item] = {
         name="Scrap Metal",
         description="Salvaged metal scraps. Useful for crafting.",
         item_type="material",
+        price=2,
     ),
     "Repair Kit": Item(
         name="Repair Kit",
@@ -22,6 +26,7 @@ ITEM_REGISTRY: dict[str, Item] = {
         item_type="consumable",
         effect_type="heal",
         effect_value=10,
+        price=8,
     ),
     "Voltage Spike": Item(
         name="Voltage Spike",
@@ -29,6 +34,7 @@ ITEM_REGISTRY: dict[str, Item] = {
         item_type="consumable",
         effect_type="damage",
         effect_value=8,
+        price=12,
     ),
     "Iron Plating": Item(
         name="Iron Plating",
@@ -36,8 +42,148 @@ ITEM_REGISTRY: dict[str, Item] = {
         item_type="consumable",
         effect_type="buff_defense",
         effect_value=3,
+        price=10,
+    ),
+    # --- Weapons ---
+    "Bronze Vibro-Knife": Item(
+        name="Bronze Vibro-Knife",
+        description="A humming blade. ATK +2.",
+        item_type="equipment", slot="weapon",
+        stat_bonuses={"strength": 2}, price=20,
+    ),
+    "Silver Pulse Blade": Item(
+        name="Silver Pulse Blade",
+        description="Pulsing energy edge. ATK +4.",
+        item_type="equipment", slot="weapon",
+        stat_bonuses={"strength": 4}, price=50,
+    ),
+    "Titanium Arc Saber": Item(
+        name="Titanium Arc Saber",
+        description="Arcing plasma blade. ATK +7.",
+        item_type="equipment", slot="weapon",
+        stat_bonuses={"strength": 7}, price=120,
+    ),
+    "Palladium Plasma Edge": Item(
+        name="Palladium Plasma Edge",
+        description="Legendary plasma weapon. ATK +11.",
+        item_type="equipment", slot="weapon",
+        stat_bonuses={"strength": 11}, price=280,
+    ),
+    # --- Armor ---
+    "Bronze Shield Vest": Item(
+        name="Bronze Shield Vest",
+        description="Basic plated vest. DEF +2.",
+        item_type="equipment", slot="armor",
+        stat_bonuses={"resilience": 2}, price=20,
+    ),
+    "Silver Flux Armor": Item(
+        name="Silver Flux Armor",
+        description="Flux-shielded plates. DEF +4.",
+        item_type="equipment", slot="armor",
+        stat_bonuses={"resilience": 4}, price=50,
+    ),
+    "Titanium Aegis Plate": Item(
+        name="Titanium Aegis Plate",
+        description="Heavy aegis plating. DEF +7.",
+        item_type="equipment", slot="armor",
+        stat_bonuses={"resilience": 7}, price=120,
+    ),
+    "Palladium Nano Suit": Item(
+        name="Palladium Nano Suit",
+        description="Nano-fiber armor. DEF +11.",
+        item_type="equipment", slot="armor",
+        stat_bonuses={"resilience": 11}, price=280,
+    ),
+    # --- Accessories ---
+    "Bronze Servo Ring": Item(
+        name="Bronze Servo Ring",
+        description="Servo-enhanced ring. Max HP +3.",
+        item_type="equipment", slot="accessory",
+        stat_bonuses={"max_hp": 3}, price=15,
+    ),
+    "Silver Combat Vizor": Item(
+        name="Silver Combat Vizor",
+        description="Targeting vizor. DEX +2.",
+        item_type="equipment", slot="accessory",
+        stat_bonuses={"dexterity": 2}, price=45,
+    ),
+    "Titanium Reflex Core": Item(
+        name="Titanium Reflex Core",
+        description="Reflex enhancer. DEX +2, Max SP +3.",
+        item_type="equipment", slot="accessory",
+        stat_bonuses={"dexterity": 2, "max_sp": 3}, price=110,
+    ),
+    "Palladium Neural Link": Item(
+        name="Palladium Neural Link",
+        description="Neural interface. INT +3, Max SP +5.",
+        item_type="equipment", slot="accessory",
+        stat_bonuses={"intelligence": 3, "max_sp": 5}, price=260,
     ),
 }
+
+# Items available in the default shop (unlimited stock)
+SHOP_STOCK: list[str] = ["Repair Kit", "Voltage Spike", "Iron Plating", "Scrap Metal"]
+
+# Weaponsmith stock
+WEAPONSMITH_STOCK: list[str] = [
+    "Bronze Vibro-Knife", "Silver Pulse Blade", "Titanium Arc Saber", "Palladium Plasma Edge",
+    "Repair Kit", "Voltage Spike",
+]
+
+# Armorsmith stock
+ARMORSMITH_STOCK: list[str] = [
+    "Bronze Shield Vest", "Silver Flux Armor", "Titanium Aegis Plate", "Palladium Nano Suit",
+    "Bronze Servo Ring", "Silver Combat Vizor", "Titanium Reflex Core", "Palladium Neural Link",
+]
+
+
+class Equipment:
+    """Tracks which items are equipped in each slot."""
+    SLOTS = ("weapon", "armor", "accessory")
+
+    def __init__(self):
+        self.slots: dict[str, str | None] = {s: None for s in self.SLOTS}
+
+    def equip(self, item_name: str) -> str | None:
+        """Equip an item. Returns the previously equipped item name (or None)."""
+        item = ITEM_REGISTRY.get(item_name)
+        if not item or item.item_type != "equipment" or not item.slot:
+            return None
+        previous = self.slots.get(item.slot)
+        self.slots[item.slot] = item_name
+        return previous
+
+    def unequip(self, slot: str) -> str | None:
+        """Unequip the item in a slot. Returns the removed item name (or None)."""
+        previous = self.slots.get(slot)
+        if slot in self.slots:
+            self.slots[slot] = None
+        return previous
+
+    def is_equipped(self, item_name: str) -> bool:
+        return item_name in self.slots.values()
+
+    def get_total_bonuses(self) -> dict[str, int]:
+        """Sum stat bonuses from all equipped items."""
+        totals: dict[str, int] = {}
+        for item_name in self.slots.values():
+            if item_name is None:
+                continue
+            item = ITEM_REGISTRY.get(item_name)
+            if item:
+                for stat, val in item.stat_bonuses.items():
+                    totals[stat] = totals.get(stat, 0) + val
+        return totals
+
+    def to_dict(self) -> dict[str, str | None]:
+        return dict(self.slots)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, str | None]) -> "Equipment":
+        eq = cls()
+        for slot in cls.SLOTS:
+            eq.slots[slot] = data.get(slot)
+        return eq
 
 
 class Inventory:
