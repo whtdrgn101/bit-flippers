@@ -1,7 +1,7 @@
 import pygame
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, COLOR_BLACK
 from bit_flippers.audio import AudioManager
-from bit_flippers.states.overworld import OverworldState
+from bit_flippers.states.title_screen import TitleScreenState
 
 
 class Game:
@@ -12,7 +12,7 @@ class Game:
         self.running = True
         self.audio = AudioManager()
         self.state_stack: list = []
-        self.state_stack.append(OverworldState(self))
+        self.state_stack.append(TitleScreenState(self))
 
     @property
     def active_state(self):

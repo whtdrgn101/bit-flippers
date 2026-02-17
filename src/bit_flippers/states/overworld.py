@@ -21,9 +21,9 @@ from bit_flippers.sprites import create_placeholder_npc, load_player
 from bit_flippers.npc import make_npc
 from bit_flippers.items import Inventory
 from bit_flippers.maps import MAP_REGISTRY, MapPersistence
-from bit_flippers.player_stats import (
-    PlayerStats, load_stats, save_stats, points_for_level,
-)
+from bit_flippers.player_stats import PlayerStats, points_for_level
+from bit_flippers.save import save_game
+from bit_flippers.strings import get_npc_dialogue
 
 MOVE_COOLDOWN = 0.15  # seconds between steps
 
@@ -37,36 +37,12 @@ DIRECTION_MAP = {
 
 
 class OverworldState:
-    def __init__(self, game):
+    def __init__(self, game, save_data=None):
         self.game = game
-
-        # Player stats and skills
-        self.stats, self.player_skills = load_stats()
-
-        # Logical tile position
-        self.player_x = 2
-        self.player_y = 2
-
-        # Visual pixel position (for smooth interpolation)
-        self.player_visual_x = float(self.player_x * TILE_SIZE)
-        self.player_visual_y = float(self.player_y * TILE_SIZE)
-
-        self.player_facing = "down"
-        self.sprite = load_player()
-
-        self.move_timer = 0.0
-        self.held_direction = None
-
-        # Inventory — start with a few healing items
-        self.inventory = Inventory()
-        self.inventory.add("Repair Kit", 3)
 
         # Pickup notification
         self.pickup_message = ""
         self.pickup_message_timer = 0.0
-
-        # Random encounter tracking
-        self.steps_since_encounter = 0
 
         # Scripted combat tracking
         self._current_scripted_enemy = None
@@ -74,16 +50,81 @@ class OverworldState:
         # HUD font
         self.hud_font = pygame.font.SysFont(None, 22)
 
+        self.sprite = load_player()
+        self.move_timer = 0.0
+        self.held_direction = None
+
         # Map system
-        self.current_map_id = "overworld"
-        self.map_persistence: dict[str, MapPersistence] = {}
         self.npcs = []
         self.enemy_npcs = []
         self.tilemap = None
         self.camera = None
 
-        # Load the starting map
+        if save_data is not None:
+            self._restore_from_save(save_data)
+        else:
+            self._fresh_start()
+
+    def _fresh_start(self):
+        """Initialize a brand-new game."""
+        from bit_flippers.skills import PlayerSkills
+
+        self.stats = PlayerStats()
+        self.player_skills = PlayerSkills()
+        self.inventory = Inventory()
+        self.inventory.add("Repair Kit", 3)
+        self.player_x = 2
+        self.player_y = 2
+        self.player_visual_x = float(self.player_x * TILE_SIZE)
+        self.player_visual_y = float(self.player_y * TILE_SIZE)
+        self.player_facing = "down"
+        self.steps_since_encounter = 0
+        self.current_map_id = "overworld"
+        self.map_persistence: dict[str, MapPersistence] = {}
         self._load_map("overworld")
+
+    def _restore_from_save(self, save_data):
+        """Restore full game state from save data dict."""
+        from bit_flippers.skills import PlayerSkills
+
+        # Stats
+        stats_data = save_data.get("stats", {})
+        self.stats = PlayerStats(**{
+            k: v for k, v in stats_data.items()
+            if k in PlayerStats.__dataclass_fields__
+        })
+
+        # Skills
+        skills_data = save_data.get("skills")
+        self.player_skills = PlayerSkills.from_dict(skills_data) if skills_data else PlayerSkills()
+
+        # Inventory
+        inv_data = save_data.get("inventory")
+        self.inventory = Inventory.from_dict(inv_data) if inv_data else Inventory()
+
+        # Position
+        self.current_map_id = save_data.get("current_map_id", "overworld")
+        self.player_x = save_data.get("player_x", 2)
+        self.player_y = save_data.get("player_y", 2)
+        self.player_visual_x = float(self.player_x * TILE_SIZE)
+        self.player_visual_y = float(self.player_y * TILE_SIZE)
+        self.player_facing = save_data.get("player_facing", "down")
+        self.steps_since_encounter = save_data.get("steps_since_encounter", 0)
+
+        # Map persistence
+        self.map_persistence: dict[str, MapPersistence] = {}
+        for map_id, pdata in save_data.get("map_persistence", {}).items():
+            mp = MapPersistence()
+            mp.collected_scrap = {tuple(c) for c in pdata.get("collected_scrap", [])}
+            mp.defeated_enemies = set(pdata.get("defeated_enemies", []))
+            self.map_persistence[map_id] = mp
+
+        self._load_map(
+            self.current_map_id,
+            spawn_x=self.player_x,
+            spawn_y=self.player_y,
+            spawn_facing=self.player_facing,
+        )
 
     def _get_persistence(self, map_id):
         """Get or create persistence data for a map."""
@@ -138,13 +179,14 @@ class OverworldState:
         if spawn_facing:
             self.player_facing = spawn_facing
 
-        # Build NPC list from MapDef
+        # Build NPC list from MapDef, resolving dialogue from strings.json
         self.npcs = []
         for npc_def in map_def.npcs:
+            dialogue = get_npc_dialogue(npc_def.dialogue_key)
             self.npcs.append(
                 make_npc(
                     npc_def.tile_x, npc_def.tile_y, npc_def.name,
-                    npc_def.dialogue, body_color=npc_def.color,
+                    dialogue, body_color=npc_def.color,
                     facing=npc_def.facing, npc_key=npc_def.sprite_key,
                 )
             )
@@ -192,7 +234,7 @@ class OverworldState:
                 self.game.push_state(PauseMenuState(self.game, self))
             elif event.key == pygame.K_c:
                 from bit_flippers.states.character import CharacterScreenState
-                self.game.push_state(CharacterScreenState(self.game, self.stats, self.player_skills))
+                self.game.push_state(CharacterScreenState(self.game, self.stats, self.player_skills, self))
             elif event.key == pygame.K_k:
                 from bit_flippers.states.skill_tree import SkillTreeState
                 self.game.push_state(SkillTreeState(self.game, self.player_skills, self.stats, self))
@@ -275,7 +317,7 @@ class OverworldState:
             self.pickup_message_timer = PICKUP_MESSAGE_DURATION
 
         # Auto-save after rewards
-        save_stats(self.stats, self.player_skills)
+        save_game(self)
 
     def on_combat_victory(self, enemy_data=None):
         """Called by CombatState when the player wins."""
@@ -500,6 +542,7 @@ class OverworldState:
             if self.tilemap.grid[new_y][new_x] == SCRAP:
                 self.tilemap.grid[new_y][new_x] = DIRT
                 self.inventory.add("Scrap Metal")
+                self.stats.money += 1
                 self.game.audio.play_sfx("pickup")
                 msg = "Picked up Scrap Metal!"
                 # 25% chance for a bonus consumable

@@ -21,7 +21,7 @@ class NPCDef:
     tile_x: int
     tile_y: int
     name: str
-    dialogue: list[str]
+    dialogue_key: str
     color: tuple[int, int, int]
     facing: str = "down"
     sprite_key: str | None = None
@@ -81,9 +81,9 @@ _OVERWORLD_GRID = [
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,2,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
     [1,0,2,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,2,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-    [1,0,0,0,0,1,0,2,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1],
-    [1,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,2,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1],
+    [1,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
     [1,0,0,0,0,1,1,3,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,2,0,0,1],
     [1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1],
@@ -143,39 +143,19 @@ MAP_REGISTRY: dict[str, MapDef] = {
         player_start_y=2,
         npcs=[
             NPCDef(
-                5, 5, "Old Tinker",
-                [
-                    "Ah, a traveler! Haven't seen one in ages.",
-                    "The scrap piles around here hold useful parts.",
-                    "Watch out for Rust Golems in the eastern corridors.",
-                ],
+                5, 5, "Old Tinker", "old_tinker_overworld",
                 color=(80, 180, 80), facing="down", sprite_key="old_tinker",
             ),
             NPCDef(
-                16, 4, "Sparks",
-                [
-                    "Bzzt! I used to be a maintenance bot.",
-                    "My circuits are a bit scrambled these days...",
-                    "If you find any spare capacitors, I'd be grateful!",
-                ],
+                16, 4, "Sparks", "sparks_overworld",
                 color=(200, 160, 50), facing="left", sprite_key="sparks",
             ),
             NPCDef(
-                22, 7, "Drifter",
-                [
-                    "Keep your voice down...",
-                    "There's something lurking in the south tunnels.",
-                    "I've heard strange sounds coming from the walls.",
-                ],
+                22, 7, "Drifter", "drifter_overworld",
                 color=(160, 100, 180), facing="right", sprite_key="drifter",
             ),
             NPCDef(
-                34, 2, "Scout",
-                [
-                    "I've mapped most of this sector.",
-                    "The northwest rooms are relatively safe.",
-                    "But the open areas? That's where the rats swarm.",
-                ],
+                34, 2, "Scout", "scout_overworld",
                 color=(100, 160, 200), facing="down", sprite_key="scout",
             ),
         ],
@@ -199,12 +179,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         player_start_y=7,
         npcs=[
             NPCDef(
-                5, 2, "Shopkeeper",
-                [
-                    "Welcome to my shop! Best repairs in the sector.",
-                    "I've got parts, tools, and know-how.",
-                    "Come back when you've got more scrap to trade!",
-                ],
+                5, 2, "Shopkeeper", "shopkeeper",
                 color=(180, 120, 60), facing="down", sprite_key="old_tinker",
             ),
         ],

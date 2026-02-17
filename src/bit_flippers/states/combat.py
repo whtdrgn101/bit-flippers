@@ -374,7 +374,7 @@ class CombatState:
 
             from bit_flippers.states.death_screen import DeathScreenState
             self.game.push_state(DeathScreenState(
-                self.game, stats, self.player_skills, lost_scrap,
+                self.game, self.overworld, lost_scrap,
             ))
         else:
             # Fled

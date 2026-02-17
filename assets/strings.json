@@ -1,0 +1,42 @@
+{
+  "title_screen": {
+    "title": "BIT FLIPPERS",
+    "subtitle": "A Post-Apocalyptic RPG"
+  },
+  "about": [
+    "BIT FLIPPERS",
+    "",
+    "A SNES-inspired turn-based RPG",
+    "set in a post-apocalyptic world.",
+    "",
+    "Created by whtdrgn101",
+    "github.com/whtdrgn101"
+  ],
+  "npcs": {
+    "old_tinker_overworld": [
+      "Ah, a traveler! Haven't seen one in ages.",
+      "The scrap piles around here hold useful parts.",
+      "Watch out for Rust Golems in the eastern corridors."
+    ],
+    "sparks_overworld": [
+      "Bzzt! I used to be a maintenance bot.",
+      "My circuits are a bit scrambled these days...",
+      "If you find any spare capacitors, I'd be grateful!"
+    ],
+    "drifter_overworld": [
+      "Keep your voice down...",
+      "There's something lurking in the south tunnels.",
+      "I've heard strange sounds coming from the walls."
+    ],
+    "scout_overworld": [
+      "I've mapped most of this sector.",
+      "The northwest rooms are relatively safe.",
+      "But the open areas? That's where the rats swarm."
+    ],
+    "shopkeeper": [
+      "Welcome to my shop! Best repairs in the sector.",
+      "I've got parts, tools, and know-how.",
+      "Come back when you've got more scrap to trade!"
+    ]
+  }
+}

@@ -118,10 +118,65 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Pause menu (ESC key) with Resume, Inventory, Character, Skill Tree, and Quit Game options
 - Quit Game option for clean exit from keyboard
 
-## Milestone 12: Save Game System
+## Milestone 12: Save Game System + Title Screen + Externalized Strings
+**Status: Done**
+- Full game state save/load (`savegame.json`): stats, skills, inventory, position, map persistence
+- Title screen with New Game / Continue / About menu
+- About screen with credits loaded from `strings.json`
+- All NPC dialogue externalized to `assets/strings.json` (NPCDef uses `dialogue_key`)
+- String loader module (`strings.py`) with caching and dot-path accessor
+- "Save Game" option in pause menu with confirmation message
+- "Continue" grayed out when no save file exists
+- Auto-save after combat victory and death penalties
+- Legacy `player_stats.json` cleaned up on New Game
+- Scrap tile pickup now awards Scrap currency in addition to inventory item
+
+## Milestone 13: Shop System
 **Status: Not started**
-- Full game state save and load (player stats, inventory, map progress, defeated NPCs)
-- JSON format for all save data (easy to parse, edit, and tweak)
-- Save/load accessible from pause menu
-- Multiple save slots or auto-save support
-- Graceful handling of missing or corrupted save files
+- Buy/sell interface at the Shopkeeper NPC in Tinker's Shop
+- Item price data added to Item definitions
+- Sell items from inventory for Scrap currency
+- Buy consumables and materials with Scrap
+- Shop UI with item list, prices, and player Scrap balance
+- Confirmation prompt before purchase
+
+## Milestone 14: Equipment System
+**Status: Not started**
+- Equipment slots: Weapon, Armor, Accessory
+- Equipment items with stat modifiers (attack, defense, etc.)
+- Equip/unequip from inventory or character screen
+- Equipment stats reflected in combat formulas
+- Equipment available from shops and rare scrap drops
+
+## Milestone 15: More Enemy Types + Boss Encounters
+**Status: Not started**
+- New regular enemies with unique stat spreads and abilities
+- Boss encounters: unique tough enemies with special mechanics
+- Boss rooms or scripted boss triggers on specific maps
+- Boss-specific loot drops
+- Encounter table variety per map area
+
+## Milestone 16: Status Effects in Combat
+**Status: Not started**
+- Poison: damage over time for N turns
+- Stun: skip a turn
+- Burn: reduced attack + damage over time
+- Status effect icons/indicators in combat UI
+- Enemy abilities that inflict status effects
+- Items or skills that cure status effects
+
+## Milestone 17: Quest System
+**Status: Not started**
+- Simple quest data model (objective type, target, reward)
+- Quest-giving NPCs with dialogue branching (pre/post quest)
+- Objective types: fetch items, defeat enemies, visit locations
+- Quest log UI accessible from pause menu
+- Quest completion rewards (Scrap, XP, items)
+
+## Milestone 18: More Maps + Areas
+**Status: Not started**
+- Additional dungeon maps with unique tilesets and encounter tables
+- Overworld expansion with new regions and connecting doors
+- Environmental hazards or puzzle elements
+- Area-specific loot and enemy placement
+- Progressive difficulty across areas

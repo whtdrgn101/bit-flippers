@@ -2,7 +2,7 @@
 import pygame
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 from bit_flippers.skills import SKILL_DEFS, PlayerSkills, _SKILL_LIST
-from bit_flippers.player_stats import save_stats
+from bit_flippers.save import save_game
 
 
 # Tree layout constants
@@ -55,7 +55,7 @@ class SkillTreeState:
             return
 
         if event.key == pygame.K_ESCAPE:
-            save_stats(self.stats, self.player_skills)
+            save_game(self.overworld)
             self.game.pop_state()
         elif event.key == pygame.K_UP:
             self.cursor = (self.cursor - 1) % len(self.skill_order)

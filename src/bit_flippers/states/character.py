@@ -2,17 +2,19 @@
 import pygame
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 from bit_flippers.player_stats import (
-    PlayerStats, save_stats,
+    PlayerStats,
     STAT_ORDER, STAT_POINT_VALUES, STAT_DESCRIPTIONS, STAT_DISPLAY_NAMES,
     effective_attack, effective_defense,
 )
+from bit_flippers.save import save_game
 
 
 class CharacterScreenState:
-    def __init__(self, game, stats: PlayerStats, player_skills=None):
+    def __init__(self, game, stats: PlayerStats, player_skills=None, overworld=None):
         self.game = game
         self.stats = stats
         self.player_skills = player_skills
+        self.overworld = overworld
         self.cursor = 0
 
         self.font_title = pygame.font.SysFont(None, 36)
@@ -27,7 +29,8 @@ class CharacterScreenState:
             return
 
         if event.key == pygame.K_ESCAPE:
-            save_stats(self.stats, self.player_skills)
+            if self.overworld is not None:
+                save_game(self.overworld)
             self.game.pop_state()
         elif event.key == pygame.K_UP:
             self.cursor = (self.cursor - 1) % len(STAT_ORDER)

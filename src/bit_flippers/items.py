@@ -65,3 +65,12 @@ class Inventory:
             if count > 0 and name in ITEM_REGISTRY and ITEM_REGISTRY[name].item_type == "consumable":
                 result.append(name)
         return result
+
+    def to_dict(self) -> dict[str, int]:
+        return dict(self.items)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, int]) -> "Inventory":
+        inv = cls()
+        inv.items = dict(data)
+        return inv

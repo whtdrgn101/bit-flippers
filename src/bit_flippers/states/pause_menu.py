@@ -1,8 +1,8 @@
-"""Pause menu with resume, sub-screen access, and quit."""
+"""Pause menu with resume, save, sub-screen access, and quit."""
 import pygame
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
-MENU_OPTIONS = ["Resume", "Inventory", "Character", "Skill Tree", "Quit Game"]
+MENU_OPTIONS = ["Resume", "Save Game", "Inventory", "Character", "Skill Tree", "Quit Game"]
 
 
 class PauseMenuState:
@@ -34,6 +34,13 @@ class PauseMenuState:
     def _select(self, option):
         if option == "Resume":
             self.game.pop_state()
+        elif option == "Save Game":
+            from bit_flippers.save import save_game
+            save_game(self.overworld)
+            self.game.pop_state()
+            self.overworld.pickup_message = "Game saved!"
+            from bit_flippers.settings import PICKUP_MESSAGE_DURATION
+            self.overworld.pickup_message_timer = PICKUP_MESSAGE_DURATION
         elif option == "Inventory":
             from bit_flippers.states.inventory import InventoryState
             self.game.pop_state()
@@ -44,7 +51,7 @@ class PauseMenuState:
             from bit_flippers.states.character import CharacterScreenState
             self.game.pop_state()
             self.game.push_state(
-                CharacterScreenState(self.game, self.overworld.stats, self.overworld.player_skills)
+                CharacterScreenState(self.game, self.overworld.stats, self.overworld.player_skills, self.overworld)
             )
         elif option == "Skill Tree":
             from bit_flippers.states.skill_tree import SkillTreeState

@@ -1,14 +1,13 @@
 """Death screen shown after the player is defeated in combat."""
 import pygame
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
-from bit_flippers.player_stats import save_stats
+from bit_flippers.save import save_game
 
 
 class DeathScreenState:
-    def __init__(self, game, stats, player_skills, lost_scrap):
+    def __init__(self, game, overworld, lost_scrap):
         self.game = game
-        self.stats = stats
-        self.player_skills = player_skills
+        self.overworld = overworld
         self.lost_scrap = lost_scrap
 
         self.font_title = pygame.font.SysFont(None, 48)
@@ -22,7 +21,7 @@ class DeathScreenState:
         if event.type != pygame.KEYDOWN:
             return
         if event.key in (pygame.K_SPACE, pygame.K_RETURN):
-            save_stats(self.stats, self.player_skills)
+            save_game(self.overworld)
             self.game.pop_state()
 
     def update(self, dt):
@@ -38,7 +37,7 @@ class DeathScreenState:
         # Penalty info
         penalty_y = SCREEN_HEIGHT // 2 - 10
         hp_text = self.font_info.render(
-            f"Respawning at {self.stats.current_hp}/{self.stats.max_hp} HP",
+            f"Respawning at {self.overworld.stats.current_hp}/{self.overworld.stats.max_hp} HP",
             True, (200, 180, 180),
         )
         screen.blit(hp_text, (SCREEN_WIDTH // 2 - hp_text.get_width() // 2, penalty_y))
