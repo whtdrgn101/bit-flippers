@@ -23,6 +23,7 @@ def save_game(overworld) -> None:
         "skills": overworld.player_skills.to_dict(),
         "inventory": overworld.inventory.to_dict(),
         "equipment": equipment.to_dict() if equipment else {},
+        "quests": overworld.player_quests.to_dict() if hasattr(overworld, "player_quests") else {},
         "current_map_id": overworld.current_map_id,
         "player_x": overworld.player_x,
         "player_y": overworld.player_y,

@@ -2,7 +2,7 @@
 import pygame
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
-MENU_OPTIONS = ["Resume", "Save Game", "Inventory", "Character", "Skill Tree", "Quit Game"]
+MENU_OPTIONS = ["Resume", "Save Game", "Inventory", "Quest Log", "Character", "Skill Tree", "Quit Game"]
 
 
 class PauseMenuState:
@@ -47,6 +47,10 @@ class PauseMenuState:
             self.game.push_state(
                 InventoryState(self.game, self.overworld.inventory, self.overworld)
             )
+        elif option == "Quest Log":
+            from bit_flippers.states.quest_log import QuestLogState
+            self.game.pop_state()
+            self.game.push_state(QuestLogState(self.game, self.overworld.player_quests))
         elif option == "Character":
             from bit_flippers.states.character import CharacterScreenState
             self.game.pop_state()

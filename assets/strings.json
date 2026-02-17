@@ -49,6 +49,96 @@
     "armorsmith": [
       "Protection is everything out here.",
       "Let me outfit you properly."
+    ],
+
+    "quest_spare_parts_offer": [
+      "I'm running low on parts for my repairs.",
+      "Could you gather 5 Scrap Metal for me?",
+      "I'll make it worth your while!"
+    ],
+    "quest_spare_parts_active": [
+      "Still looking for that Scrap Metal?",
+      "I need 5 pieces. Check the scrap piles around here."
+    ],
+    "quest_spare_parts_complete": [
+      "You found all the scrap! Wonderful!",
+      "Here's your payment. Good doing business!"
+    ],
+    "quest_spare_parts_done": [
+      "Thanks again for the scrap. My shelves are stocked!",
+      "Let me know if you need anything."
+    ],
+
+    "quest_pest_control_offer": [
+      "Those Scrap Rats are everywhere lately.",
+      "If you could take out 4 of them, the sector would be safer.",
+      "I'll share my supply cache as thanks."
+    ],
+    "quest_pest_control_active": [
+      "Still rats skittering around out there.",
+      "Keep hunting them down. We need 4 eliminated."
+    ],
+    "quest_pest_control_complete": [
+      "The sector's quieter already. Nice work!",
+      "Here, take these supplies. You've earned them."
+    ],
+    "quest_pest_control_done": [
+      "Sector's been peaceful since you cleared those rats.",
+      "You're a real asset around here."
+    ],
+
+    "quest_deep_recon_offer": [
+      "There's a cave to the south... the Scrap Cave.",
+      "I need someone to scout it and deal with the Volt Wraiths.",
+      "Visit the cave and defeat 2 Volt Wraiths. Can you handle it?"
+    ],
+    "quest_deep_recon_active": [
+      "Head south to the Scrap Cave.",
+      "I need you to explore it and take down 2 Volt Wraiths."
+    ],
+    "quest_deep_recon_complete": [
+      "You've been to the cave AND dealt with the Wraiths?",
+      "Incredible. Take this blade I've been saving."
+    ],
+    "quest_deep_recon_done": [
+      "The cave intel has been invaluable.",
+      "Stay sharp out there, traveler."
+    ],
+
+    "quest_circuit_restore_offer": [
+      "Bzzt! My circuits are almost functional again!",
+      "I just need 3 Voltage Spikes to complete the restoration.",
+      "Help me out and I'll teach you a useful technique!"
+    ],
+    "quest_circuit_restore_active": [
+      "Bzzt... still need those Voltage Spikes.",
+      "3 of them should do the trick. You can buy them at shops."
+    ],
+    "quest_circuit_restore_complete": [
+      "Bzzt-BZZT! Perfect! These are exactly what I needed!",
+      "As promised, let me upload this skill to your neural link."
+    ],
+    "quest_circuit_restore_done": [
+      "Bzzt! Systems running at 87% efficiency!",
+      "Thanks to you, I'm almost like new."
+    ],
+
+    "quest_factory_sweep_offer": [
+      "The Plasma Hounds have taken over the assembly lines.",
+      "I need you to eliminate 3 of them so I can resume work.",
+      "There's high-grade armor in it for you."
+    ],
+    "quest_factory_sweep_active": [
+      "Those Plasma Hounds are still prowling around.",
+      "I need 3 of them dealt with. Watch out for their fire."
+    ],
+    "quest_factory_sweep_complete": [
+      "The factory floor is clear? Outstanding!",
+      "This Titanium Aegis Plate is yours. Finest armor I've made."
+    ],
+    "quest_factory_sweep_done": [
+      "The assembly lines are running again thanks to you.",
+      "If I forge anything new, you'll be the first to know."
     ]
   }
 }

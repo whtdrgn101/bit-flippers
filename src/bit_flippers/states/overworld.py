@@ -60,6 +60,9 @@ class OverworldState:
         self.tilemap = None
         self.camera = None
 
+        # Quest tracking — enemies defeated this combat session
+        self.last_combat_defeated_names: list[str] = []
+
         if save_data is not None:
             self._restore_from_save(save_data)
         else:
@@ -68,11 +71,13 @@ class OverworldState:
     def _fresh_start(self):
         """Initialize a brand-new game."""
         from bit_flippers.skills import PlayerSkills
+        from bit_flippers.quests import PlayerQuests
 
         self.stats = PlayerStats()
         self.player_skills = PlayerSkills()
         self.inventory = Inventory()
         self.equipment = Equipment()
+        self.player_quests = PlayerQuests()
         self.inventory.add("Repair Kit", 3)
         self.player_x = 2
         self.player_y = 2
@@ -87,6 +92,7 @@ class OverworldState:
     def _restore_from_save(self, save_data):
         """Restore full game state from save data dict."""
         from bit_flippers.skills import PlayerSkills
+        from bit_flippers.quests import PlayerQuests
 
         # Stats
         stats_data = save_data.get("stats", {})
@@ -106,6 +112,10 @@ class OverworldState:
         # Equipment
         eq_data = save_data.get("equipment")
         self.equipment = Equipment.from_dict(eq_data) if eq_data else Equipment()
+
+        # Quests
+        quest_data = save_data.get("quests")
+        self.player_quests = PlayerQuests.from_dict(quest_data) if quest_data else PlayerQuests()
 
         # Position
         self.current_map_id = save_data.get("current_map_id", "overworld")
@@ -193,6 +203,7 @@ class OverworldState:
                     npc_def.tile_x, npc_def.tile_y, npc_def.name,
                     dialogue, body_color=npc_def.color,
                     facing=npc_def.facing, npc_key=npc_def.sprite_key,
+                    sprite_style=getattr(npc_def, "sprite_style", "humanoid"),
                 )
             )
 
@@ -224,6 +235,8 @@ class OverworldState:
                     spawn_y=door.target_spawn_y,
                     spawn_facing=door.target_facing,
                 )
+                # Update quest visit tracking for the new map
+                self.player_quests.update_visit(door.target_map_id)
                 return
 
     def handle_event(self, event):
@@ -246,6 +259,9 @@ class OverworldState:
             elif event.key == pygame.K_k:
                 from bit_flippers.states.skill_tree import SkillTreeState
                 self.game.push_state(SkillTreeState(self.game, self.player_skills, self.stats, self))
+            elif event.key == pygame.K_q:
+                from bit_flippers.states.quest_log import QuestLogState
+                self.game.push_state(QuestLogState(self.game, self.player_quests))
         elif event.type == pygame.KEYUP:
             if event.key == self.held_direction:
                 self.held_direction = None
@@ -270,21 +286,62 @@ class OverworldState:
         for npc in self.npcs:
             if npc.tile_x == target_x and npc.tile_y == target_y:
                 from bit_flippers.states.dialogue import DialogueState
+                from bit_flippers.quests import QUEST_REGISTRY
+                from bit_flippers.strings import get_npc_dialogue as _get_dialogue
+
                 on_close = None
-                if npc.name == "Shopkeeper":
-                    def on_close(_ow=self):
-                        from bit_flippers.states.shop import ShopState
-                        _ow.game.push_state(ShopState(_ow.game, _ow))
-                elif npc.name == "Weaponsmith":
-                    def on_close(_ow=self):
-                        from bit_flippers.states.shop import ShopState
-                        _ow.game.push_state(ShopState(_ow.game, _ow, stock_list=WEAPONSMITH_STOCK))
-                elif npc.name == "Armorsmith":
-                    def on_close(_ow=self):
-                        from bit_flippers.states.shop import ShopState
-                        _ow.game.push_state(ShopState(_ow.game, _ow, stock_list=ARMORSMITH_STOCK))
+                dialogue_lines = npc.dialogue_lines
+
+                # Check if this NPC has a quest interaction
+                quest_info = self.player_quests.get_npc_quest(npc.name)
+                if quest_info is not None:
+                    qid, qstate = quest_info
+                    qdef = QUEST_REGISTRY[qid]
+                    if qstate == "available":
+                        lines = _get_dialogue(qdef.dialogue_offer)
+                        if lines:
+                            dialogue_lines = lines
+                        def on_close(_ow=self, _qid=qid):
+                            _ow.player_quests.accept(_qid)
+                            _ow.pickup_message = f"Quest accepted: {QUEST_REGISTRY[_qid].name}"
+                            _ow.pickup_message_timer = PICKUP_MESSAGE_DURATION
+                    elif qstate == "active":
+                        # Update fetch objectives before showing dialogue
+                        self.player_quests.update_fetch(self.inventory)
+                        lines = _get_dialogue(qdef.dialogue_active)
+                        if lines:
+                            dialogue_lines = lines
+                    elif qstate == "complete":
+                        lines = _get_dialogue(qdef.dialogue_complete)
+                        if lines:
+                            dialogue_lines = lines
+                        def on_close(_ow=self, _qid=qid):
+                            _ow.player_quests.claim_rewards(_qid, _ow)
+                            _ow.pickup_message = f"Quest complete: {QUEST_REGISTRY[_qid].name}!"
+                            _ow.pickup_message_timer = PICKUP_MESSAGE_DURATION
+                            save_game(_ow)
+                    elif qstate == "done":
+                        lines = _get_dialogue(qdef.dialogue_done)
+                        if lines:
+                            dialogue_lines = lines
+
+                # Shop NPCs still open shop after quest dialogue
+                if on_close is None:
+                    if npc.name == "Shopkeeper":
+                        def on_close(_ow=self):
+                            from bit_flippers.states.shop import ShopState
+                            _ow.game.push_state(ShopState(_ow.game, _ow))
+                    elif npc.name == "Weaponsmith":
+                        def on_close(_ow=self):
+                            from bit_flippers.states.shop import ShopState
+                            _ow.game.push_state(ShopState(_ow.game, _ow, stock_list=WEAPONSMITH_STOCK))
+                    elif npc.name == "Armorsmith":
+                        def on_close(_ow=self):
+                            from bit_flippers.states.shop import ShopState
+                            _ow.game.push_state(ShopState(_ow.game, _ow, stock_list=ARMORSMITH_STOCK))
+
                 self.game.push_state(
-                    DialogueState(self.game, npc.name, npc.dialogue_lines, on_close=on_close)
+                    DialogueState(self.game, npc.name, dialogue_lines, on_close=on_close)
                 )
                 return
 
@@ -344,6 +401,8 @@ class OverworldState:
         """Called by CombatState when the player wins."""
         if enemy_data is not None:
             self._grant_rewards(enemy_data)
+            # Update quest kill tracking
+            self.player_quests.update_kill(enemy_data.name)
         if self._current_scripted_enemy is not None:
             self._current_scripted_enemy["defeated"] = True
         self._current_scripted_enemy = None
@@ -553,6 +612,12 @@ class OverworldState:
                 f"+{self.player_skills.skill_points} skill pts [K]", True, (100, 180, 255)
             )
             screen.blit(skill_label, (x, y))
+            y += 18
+
+        # Quest completable indicator
+        if self.player_quests.has_completable():
+            quest_label = self.hud_font.render("! Quest ready [Q]", True, (100, 255, 100))
+            screen.blit(quest_label, (x, y))
             y += 18
 
         # Map name

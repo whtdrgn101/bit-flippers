@@ -152,6 +152,68 @@ def create_placeholder_npc(body_color, facing="down"):
     return AnimatedSprite(animations, default=f"idle_{facing}")
 
 
+def create_placeholder_robot(body_color, facing="down"):
+    """Procedurally generate a robot NPC sprite with boxy industrial look.
+
+    Rectangular head with antenna, single glowing eye, rivet details.
+    """
+    size = TILE_SIZE
+    eye_color = (100, 255, 180)
+    # Darker shade for head and accents
+    head_color = (
+        max(0, body_color[0] - 30),
+        max(0, body_color[1] - 30),
+        max(0, body_color[2] - 30),
+    )
+    rivet_color = (
+        min(255, body_color[0] + 40),
+        min(255, body_color[1] + 40),
+        min(255, body_color[2] + 40),
+    )
+
+    dir_offsets = {
+        "down": (0, 3),
+        "up": (0, -3),
+        "left": (-3, 0),
+        "right": (3, 0),
+    }
+
+    animations = {}
+    for direction, (edx, edy) in dir_offsets.items():
+        surf = pygame.Surface((size, size), pygame.SRCALPHA)
+
+        # Antenna nub on top
+        pygame.draw.rect(surf, rivet_color, (size // 2 - 1, 0, 3, 4))
+
+        # Boxy rectangular head
+        head_rect = pygame.Rect(6, 3, size - 12, 10)
+        pygame.draw.rect(surf, head_color, head_rect)
+        pygame.draw.rect(surf, rivet_color, head_rect, 1)
+
+        # Single glowing circular eye
+        eye_cx = size // 2 + edx
+        eye_cy = 8 + edy
+        pygame.draw.circle(surf, eye_color, (eye_cx, eye_cy), 3)
+        pygame.draw.circle(surf, (255, 255, 255), (eye_cx, eye_cy), 1)
+
+        # Wider rectangular body with rivet dots
+        body_rect = pygame.Rect(3, 13, size - 6, size - 17)
+        pygame.draw.rect(surf, body_color, body_rect, border_radius=2)
+        pygame.draw.rect(surf, head_color, body_rect, 1, border_radius=2)
+
+        # Rivet dots on body corners
+        for rx, ry in [(6, 16), (size - 7, 16), (6, size - 7), (size - 7, size - 7)]:
+            pygame.draw.circle(surf, rivet_color, (rx, ry), 1)
+
+        # Leg stubs at bottom
+        pygame.draw.rect(surf, head_color, (8, size - 4, 5, 4))
+        pygame.draw.rect(surf, head_color, (size - 13, size - 4, 5, 4))
+
+        animations[f"idle_{direction}"] = ([surf], 0.5)
+
+    return AnimatedSprite(animations, default=f"idle_{facing}")
+
+
 def create_placeholder_enemy(body_color):
     """Procedurally generate an enemy sprite with a spiky/angular look."""
     size = TILE_SIZE

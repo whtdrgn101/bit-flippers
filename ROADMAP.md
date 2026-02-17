@@ -172,13 +172,17 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Enemy abilities that inflict status effects
 - Items or skills that cure status effects
 
-## Milestone 17: Quest System
-**Status: Not started**
-- Simple quest data model (objective type, target, reward)
-- Quest-giving NPCs with dialogue branching (pre/post quest)
-- Objective types: fetch items, defeat enemies, visit locations
-- Quest log UI accessible from pause menu
-- Quest completion rewards (Scrap, XP, items)
+## Milestone 17: Quest System + Robot NPC Sprites
+**Status: Done**
+- Quest data model: QuestObjective, QuestDef, PlayerQuests with state machine (available -> active -> complete -> done)
+- 5 quests: Spare Parts (fetch), Pest Control (kill), Deep Reconnaissance (multi-stage), Circuit Restoration (fetch, prerequisite chain), Factory Sweep (kill)
+- Quest-giving NPCs with dialogue branching per quest state (offer/active/complete/done)
+- Quest log UI (`Q` key or pause menu) with objective progress, rewards, and description
+- Quest completion rewards: Scrap, XP, items, equipment, and skill unlocks
+- Robot procedural sprites for Weaponsmith, Armorsmith, and Sparks NPCs (boxy industrial look)
+- Kill tracking after combat victory, fetch checking on NPC interaction, visit tracking on map transition
+- HUD indicator when quests are completable
+- Quest progress persisted in savegame.json (backward-compatible)
 
 ## Milestone 18: More Maps + Areas
 **Status: Done**

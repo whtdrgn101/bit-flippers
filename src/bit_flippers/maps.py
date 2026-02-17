@@ -25,6 +25,7 @@ class NPCDef:
     color: tuple[int, int, int]
     facing: str = "down"
     sprite_key: str | None = None
+    sprite_style: str = "humanoid"  # "humanoid" or "robot"
 
 
 @dataclass
@@ -220,7 +221,8 @@ MAP_REGISTRY: dict[str, MapDef] = {
             ),
             NPCDef(
                 16, 4, "Sparks", "sparks_overworld",
-                color=(200, 160, 50), facing="left", sprite_key="sparks",
+                color=(160, 180, 60), facing="left",
+                sprite_style="robot",
             ),
             NPCDef(
                 22, 7, "Drifter", "drifter_overworld",
@@ -341,7 +343,8 @@ MAP_REGISTRY: dict[str, MapDef] = {
         npcs=[
             NPCDef(
                 4, 2, "Weaponsmith", "weaponsmith",
-                color=(220, 140, 50), facing="down",
+                color=(180, 100, 50), facing="down",
+                sprite_style="robot",
             ),
         ],
         enemies=[],
@@ -362,7 +365,8 @@ MAP_REGISTRY: dict[str, MapDef] = {
         npcs=[
             NPCDef(
                 4, 2, "Armorsmith", "armorsmith",
-                color=(80, 120, 200), facing="down",
+                color=(100, 120, 160), facing="down",
+                sprite_style="robot",
             ),
         ],
         enemies=[],
