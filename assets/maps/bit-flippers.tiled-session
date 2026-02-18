@@ -1,10 +1,18 @@
 {
-    "activeFile": "tinker_shop.tmx",
+    "activeFile": "iron_shell.tmx",
     "expandedProjectPaths": [
-        ".",
-        "tilesets"
+        "tilesets",
+        "."
     ],
     "fileStates": {
+        "iron_shell.tmx": {
+            "scale": 2.678472222222222,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 159.97925849105522,
+                "y": 143.92533056779885
+            }
+        },
         "overworld.tmx": {
             "scale": 1.5,
             "selectedLayer": 2,
@@ -27,20 +35,22 @@
             "scale": 2.36,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 192.5847457627119,
-                "y": 160.8050847457627
+                "x": 189.6186440677966,
+                "y": 157.41525423728814
             }
         }
     },
     "openFiles": [
         "tinker_shop.tmx",
-        "tilesets/basechip.tsx"
+        "tilesets/basechip.tsx",
+        "iron_shell.tmx"
     ],
     "project": "bit-flippers.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "tilesets/basechip.tsx",
         "tinker_shop.tmx",
+        "tilesets/basechip.tsx",
+        "iron_shell.tmx",
         "overworld.tmx"
     ]
 }
