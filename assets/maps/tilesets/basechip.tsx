@@ -531,4 +531,19 @@
    <property name="walkable" type="bool" value="false"/>
   </properties>
  </tile>
+ <tile id="919">
+  <properties>
+   <property name="walkable" type="bool" value="false"/>
+  </properties>
+ </tile>
+ <tile id="935">
+  <properties>
+   <property name="walkable" type="bool" value="false"/>
+  </properties>
+ </tile>
+ <tile id="943">
+  <properties>
+   <property name="walkable" type="bool" value="false"/>
+  </properties>
+ </tile>
 </tileset>

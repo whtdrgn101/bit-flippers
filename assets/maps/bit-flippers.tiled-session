@@ -1,5 +1,5 @@
 {
-    "activeFile": "tilesets/basechip.tsx",
+    "activeFile": "tinker_shop.tmx",
     "expandedProjectPaths": [
         ".",
         "tilesets"
@@ -25,7 +25,7 @@
         },
         "tinker_shop.tmx": {
             "scale": 2.36,
-            "selectedLayer": 1,
+            "selectedLayer": 2,
             "viewCenter": {
                 "x": 192.5847457627119,
                 "y": 160.8050847457627
@@ -39,8 +39,8 @@
     "project": "bit-flippers.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "tinker_shop.tmx",
         "tilesets/basechip.tsx",
+        "tinker_shop.tmx",
         "overworld.tmx"
     ]
 }
