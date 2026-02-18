@@ -1,4 +1,3 @@
-import copy
 import random
 
 import pygame
@@ -21,7 +20,6 @@ from bit_flippers.settings import (
     COLOR_MONEY_TEXT,
 )
 from bit_flippers.camera import Camera
-from bit_flippers.tilemap import TileMap, DIRT, SCRAP, DOOR, GRASS
 from bit_flippers.sprites import create_placeholder_npc, load_player
 from bit_flippers.npc import make_npc
 from bit_flippers.items import Inventory, Equipment, WEAPONSMITH_STOCK, ARMORSMITH_STOCK
@@ -31,7 +29,6 @@ from bit_flippers.save import save_game
 from bit_flippers.strings import get_npc_dialogue
 
 MOVE_COOLDOWN = 0.15  # seconds between steps
-_ENCOUNTER_TILES = frozenset({DIRT, GRASS})
 
 # Map from pygame key to (dx, dy, direction_name)
 DIRECTION_MAP = {
@@ -63,8 +60,8 @@ class OverworldState:
         # Map system
         self.npcs = []
         self.enemy_npcs = []
-        self.tilemap = None
         self.tiled_renderer = None
+        self.scrap_remaining = set()
         self.camera = None
 
         # Quest tracking — enemies defeated this combat session
@@ -159,13 +156,8 @@ class OverworldState:
         if self.current_map_id is None:
             return
         persist = self._get_persistence(self.current_map_id)
-        # Record collected scrap (compare tilemap grid against original map_def grid)
-        if self.tilemap is not None:
-            map_def = MAP_REGISTRY[self.current_map_id]
-            for y in range(len(map_def.grid)):
-                for x in range(len(map_def.grid[y])):
-                    if map_def.grid[y][x] == SCRAP and self.tilemap.grid[y][x] != SCRAP:
-                        persist.collected_scrap.add((x, y))
+        map_def = MAP_REGISTRY[self.current_map_id]
+        persist.collected_scrap = set(map_def.scrap_positions) - self.scrap_remaining
         # Record defeated enemies
         for enpc in self.enemy_npcs:
             if enpc["defeated"]:
@@ -179,37 +171,21 @@ class OverworldState:
         map_def = MAP_REGISTRY[map_id]
         self.current_map_id = map_id
 
-        # Try Tiled renderer first, fall back to grid
-        self.tiled_renderer = None
-        if map_def.tmx_file:
-            try:
-                from bit_flippers.tiled_loader import TiledMapRenderer
-                self.tiled_renderer = TiledMapRenderer(map_def.tmx_file)
-            except Exception:
-                self.tiled_renderer = None
+        # Load Tiled renderer
+        from bit_flippers.tiled_loader import TiledMapRenderer
+        self.tiled_renderer = TiledMapRenderer(map_def.tmx_file)
 
-        # Deep-copy the grid so modifications (scrap pickup) don't affect the template
-        grid = copy.deepcopy(map_def.grid)
-
-        # Apply persistence — remove collected scrap
+        # Build the set of scrap positions still available on this map
         persist = self._get_persistence(map_id)
-        scrap_replacement = GRASS if map_id == "overworld" else DIRT
-        for (sx, sy) in persist.collected_scrap:
-            if 0 <= sy < len(grid) and 0 <= sx < len(grid[sy]):
-                grid[sy][sx] = scrap_replacement
+        self.scrap_remaining = set(map_def.scrap_positions) - persist.collected_scrap
 
-        # Create tilemap (always, as fallback) and camera
-        self.tilemap = TileMap(grid, tile_colors_override=map_def.tile_colors_override)
         self.camera = Camera(SCREEN_WIDTH, VIEWPORT_HEIGHT)
 
         # Set player position
         px = spawn_x if spawn_x is not None else map_def.player_start_x
         py = spawn_y if spawn_y is not None else map_def.player_start_y
         # Spawn validation: if position isn't walkable (e.g. map redesigned), fall back
-        # Use tiled renderer for walkability when available (reads tile properties),
-        # fall back to grid-based tilemap for maps without a .tmx file.
-        walkable_check = self.tiled_renderer or self.tilemap
-        if not walkable_check.is_walkable(px, py):
+        if not self.tiled_renderer.is_walkable(px, py):
             px = map_def.player_start_x
             py = map_def.player_start_y
         self.player_x = px
@@ -510,7 +486,7 @@ class OverworldState:
                 enemy_npc["sprite"].update(dt)
 
         # Update camera to follow player visual position (center of sprite)
-        map_source = self.tiled_renderer or self.tilemap
+        map_source = self.tiled_renderer
         self.camera.update(
             int(self.player_visual_x) + TILE_SIZE // 2,
             int(self.player_visual_y) + TILE_SIZE // 2,
@@ -547,10 +523,7 @@ class OverworldState:
         screen.set_clip(viewport_rect)
 
         # Draw map tiles (below sprites)
-        if self.tiled_renderer:
-            self.tiled_renderer.draw_below(screen, self.camera)
-        else:
-            self.tilemap.draw(screen, self.camera)
+        self.tiled_renderer.draw_below(screen, self.camera)
         self._draw_icon_markers(screen)
 
         # Draw friendly NPCs
@@ -690,8 +663,7 @@ class OverworldState:
         new_x = self.player_x + dx
         new_y = self.player_y + dy
 
-        walkable_check = self.tiled_renderer or self.tilemap
-        if walkable_check.is_walkable(new_x, new_y) and not self._npc_at(new_x, new_y):
+        if self.tiled_renderer.is_walkable(new_x, new_y) and not self._npc_at(new_x, new_y):
             self.player_x = new_x
             self.player_y = new_y
             self.steps_since_encounter += 1
@@ -703,9 +675,9 @@ class OverworldState:
                     self._handle_door_transition()
                     return
 
-            # Scrap pickup (always consult the grid)
-            if self.tilemap.grid[new_y][new_x] == SCRAP:
-                self.tilemap.grid[new_y][new_x] = GRASS if self.current_map_id == "overworld" else DIRT
+            # Scrap pickup
+            if (new_x, new_y) in self.scrap_remaining:
+                self.scrap_remaining.discard((new_x, new_y))
                 self.inventory.add("Scrap Metal")
                 self.stats.money += 1
                 self.game.audio.play_sfx("pickup")
@@ -718,11 +690,11 @@ class OverworldState:
                 self.pickup_message = msg
                 self.pickup_message_timer = PICKUP_MESSAGE_DURATION
 
-            # Random encounter check (always consult the grid)
+            # Random encounter check
             if (
                 map_def.encounter_table
                 and self.steps_since_encounter >= MIN_STEPS_BETWEEN_ENCOUNTERS
-                and self.tilemap.grid[new_y][new_x] in _ENCOUNTER_TILES
+                and self.tiled_renderer.is_walkable(new_x, new_y)
                 and random.random() < map_def.encounter_chance
             ):
                 self._start_random_combat()

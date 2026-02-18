@@ -1,0 +1,94 @@
+{
+  "version": 1,
+  "stats": {
+    "max_hp": 30,
+    "max_sp": 10,
+    "strength": 5,
+    "dexterity": 5,
+    "resilience": 3,
+    "constitution": 3,
+    "intelligence": 3,
+    "level": 1,
+    "xp": 0,
+    "money": 0,
+    "unspent_points": 0,
+    "current_hp": 30,
+    "current_sp": 10
+  },
+  "skills": {
+    "unlocked": [],
+    "skill_points": 0
+  },
+  "inventory": {
+    "Repair Kit": 3
+  },
+  "equipment": {
+    "weapon": null,
+    "armor": null,
+    "accessory": null
+  },
+  "quests": {
+    "states": {},
+    "objectives": {}
+  },
+  "current_map_id": "tinker_shop",
+  "player_x": 4,
+  "player_y": 2,
+  "player_facing": "right",
+  "steps_since_encounter": 29,
+  "map_persistence": {
+    "overworld": {
+      "collected_scrap": [
+        [
+          8,
+          7
+        ],
+        [
+          12,
+          43
+        ],
+        [
+          16,
+          46
+        ],
+        [
+          18,
+          44
+        ],
+        [
+          28,
+          5
+        ],
+        [
+          40,
+          42
+        ],
+        [
+          48,
+          6
+        ],
+        [
+          55,
+          45
+        ],
+        [
+          60,
+          5
+        ],
+        [
+          62,
+          6
+        ],
+        [
+          65,
+          48
+        ]
+      ],
+      "defeated_enemies": []
+    },
+    "tinker_shop": {
+      "collected_scrap": [],
+      "defeated_enemies": []
+    }
+  }
+}

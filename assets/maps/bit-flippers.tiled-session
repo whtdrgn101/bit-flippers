@@ -1,5 +1,5 @@
 {
-    "activeFile": "iron_shell.tmx",
+    "activeFile": "reactor_core.tmx",
     "expandedProjectPaths": [
         "tilesets",
         "."
@@ -9,16 +9,24 @@
             "scale": 2.678472222222222,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 159.97925849105522,
-                "y": 143.92533056779885
+                "x": 159.79258491055225,
+                "y": 144.1120041483018
             }
         },
         "overworld.tmx": {
             "scale": 1.5,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 1438.3333333333333,
-                "y": 890.9999999999999
+                "x": 1438.6666666666665,
+                "y": 890.6666666666666
+            }
+        },
+        "reactor_core.tmx": {
+            "scale": 1.5833333333333333,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 288.00000000000006,
+                "y": 224.21052631578948
             }
         },
         "tilesets/basechip.tsx": {
@@ -35,15 +43,17 @@
             "scale": 2.36,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 189.6186440677966,
-                "y": 157.41525423728814
+                "x": 191.9491525423729,
+                "y": 157.62711864406782
             }
         }
     },
     "openFiles": [
         "tinker_shop.tmx",
         "tilesets/basechip.tsx",
-        "iron_shell.tmx"
+        "iron_shell.tmx",
+        "overworld.tmx",
+        "reactor_core.tmx"
     ],
     "project": "bit-flippers.tiled-project",
     "property.type": "bool",
@@ -51,6 +61,7 @@
         "tinker_shop.tmx",
         "tilesets/basechip.tsx",
         "iron_shell.tmx",
-        "overworld.tmx"
+        "overworld.tmx",
+        "reactor_core.tmx"
     ]
 }
