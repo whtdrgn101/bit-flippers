@@ -5,6 +5,11 @@ import pygame
 from bit_flippers.settings import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
+    VIEWPORT_HEIGHT,
+    HUD_HEIGHT,
+    HUD_Y,
+    COLOR_HUD_BG,
+    COLOR_HUD_BORDER,
     TILE_SIZE,
     PLAYER_MOVE_SPEED,
     MIN_STEPS_BETWEEN_ENCOUNTERS,
@@ -59,6 +64,7 @@ class OverworldState:
         self.npcs = []
         self.enemy_npcs = []
         self.tilemap = None
+        self.tiled_renderer = None
         self.camera = None
 
         # Quest tracking — enemies defeated this combat session
@@ -150,15 +156,16 @@ class OverworldState:
 
     def _save_current_persistence(self):
         """Save scrap/enemy state from the current map to persistence."""
-        if self.current_map_id is None or self.tilemap is None:
+        if self.current_map_id is None:
             return
         persist = self._get_persistence(self.current_map_id)
-        map_def = MAP_REGISTRY[self.current_map_id]
-        # Record collected scrap: compare current grid vs original
-        for y in range(len(map_def.grid)):
-            for x in range(len(map_def.grid[y])):
-                if map_def.grid[y][x] == SCRAP and self.tilemap.grid[y][x] != SCRAP:
-                    persist.collected_scrap.add((x, y))
+        # Record collected scrap (compare tilemap grid against original map_def grid)
+        if self.tilemap is not None:
+            map_def = MAP_REGISTRY[self.current_map_id]
+            for y in range(len(map_def.grid)):
+                for x in range(len(map_def.grid[y])):
+                    if map_def.grid[y][x] == SCRAP and self.tilemap.grid[y][x] != SCRAP:
+                        persist.collected_scrap.add((x, y))
         # Record defeated enemies
         for enpc in self.enemy_npcs:
             if enpc["defeated"]:
@@ -172,6 +179,15 @@ class OverworldState:
         map_def = MAP_REGISTRY[map_id]
         self.current_map_id = map_id
 
+        # Try Tiled renderer first, fall back to grid
+        self.tiled_renderer = None
+        if map_def.tmx_file:
+            try:
+                from bit_flippers.tiled_loader import TiledMapRenderer
+                self.tiled_renderer = TiledMapRenderer(map_def.tmx_file)
+            except Exception:
+                self.tiled_renderer = None
+
         # Deep-copy the grid so modifications (scrap pickup) don't affect the template
         grid = copy.deepcopy(map_def.grid)
 
@@ -182,15 +198,18 @@ class OverworldState:
             if 0 <= sy < len(grid) and 0 <= sx < len(grid[sy]):
                 grid[sy][sx] = scrap_replacement
 
-        # Create tilemap and camera
+        # Create tilemap (always, as fallback) and camera
         self.tilemap = TileMap(grid, tile_colors_override=map_def.tile_colors_override)
-        self.camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.camera = Camera(SCREEN_WIDTH, VIEWPORT_HEIGHT)
 
         # Set player position
         px = spawn_x if spawn_x is not None else map_def.player_start_x
         py = spawn_y if spawn_y is not None else map_def.player_start_y
         # Spawn validation: if position isn't walkable (e.g. map redesigned), fall back
-        if not self.tilemap.is_walkable(px, py):
+        # Use tiled renderer for walkability when available (reads tile properties),
+        # fall back to grid-based tilemap for maps without a .tmx file.
+        walkable_check = self.tiled_renderer or self.tilemap
+        if not walkable_check.is_walkable(px, py):
             px = map_def.player_start_x
             py = map_def.player_start_y
         self.player_x = px
@@ -491,11 +510,12 @@ class OverworldState:
                 enemy_npc["sprite"].update(dt)
 
         # Update camera to follow player visual position (center of sprite)
+        map_source = self.tiled_renderer or self.tilemap
         self.camera.update(
             int(self.player_visual_x) + TILE_SIZE // 2,
             int(self.player_visual_y) + TILE_SIZE // 2,
-            self.tilemap.width_px,
-            self.tilemap.height_px,
+            map_source.width_px,
+            map_source.height_px,
         )
 
     def _draw_icon_markers(self, screen):
@@ -522,7 +542,15 @@ class OverworldState:
                 pygame.draw.line(screen, c, (cx, cy - 4), (cx, cy + 4), 2)
 
     def draw(self, screen):
-        self.tilemap.draw(screen, self.camera)
+        # Clip game world to the viewport area (top 360px)
+        viewport_rect = pygame.Rect(0, 0, SCREEN_WIDTH, VIEWPORT_HEIGHT)
+        screen.set_clip(viewport_rect)
+
+        # Draw map tiles (below sprites)
+        if self.tiled_renderer:
+            self.tiled_renderer.draw_below(screen, self.camera)
+        else:
+            self.tilemap.draw(screen, self.camera)
         self._draw_icon_markers(screen)
 
         # Draw friendly NPCs
@@ -551,45 +579,65 @@ class OverworldState:
         screen_rect = self.camera.apply(player_rect)
         screen.blit(self.sprite.image, screen_rect)
 
-        # HUD: HP bar (fixed position, not affected by camera)
+        # Draw map tiles (above sprites) for Tiled maps
+        if self.tiled_renderer:
+            self.tiled_renderer.draw_above(screen, self.camera)
+
+        # Pickup notification (stays in viewport area)
+        if self.pickup_message:
+            msg_surf = self.hud_font.render(self.pickup_message, True, (255, 220, 100))
+            screen.blit(msg_surf, (SCREEN_WIDTH // 2 - msg_surf.get_width() // 2, 50))
+
+        # Remove clip before drawing HUD
+        screen.set_clip(None)
+
+        # HUD panel in the bottom 120px
         self._draw_hud(screen)
 
     def _draw_hud(self, screen):
-        x, y = 10, 10
-        bar_width, bar_height = 100, 12
-        bar_x = x + 28
+        # Background panel
+        pygame.draw.rect(screen, COLOR_HUD_BG, (0, HUD_Y, SCREEN_WIDTH, HUD_HEIGHT))
+        pygame.draw.line(screen, COLOR_HUD_BORDER, (0, HUD_Y), (SCREEN_WIDTH, HUD_Y), 2)
 
-        # Level label
+        pad = 10
+        bar_width, bar_height = 120, 12
+        col_left = pad
+        col_mid = SCREEN_WIDTH // 3 + pad
+        col_right = 2 * SCREEN_WIDTH // 3 + pad
+
+        # --- LEFT COLUMN: Level + HP/SP/XP bars ---
+        y = HUD_Y + pad
         level_label = self.hud_font.render(f"Lv {self.stats.level}", True, (255, 255, 255))
-        screen.blit(level_label, (x, y))
-        y += 18
+        screen.blit(level_label, (col_left, y))
+        y += 20
 
+        bar_x = col_left + 28
         # HP bar
         hp_ratio = self.stats.current_hp / self.stats.max_hp if self.stats.max_hp > 0 else 0
         hp_label = self.hud_font.render("HP", True, (255, 255, 255))
-        screen.blit(hp_label, (x, y))
+        screen.blit(hp_label, (col_left, y))
         pygame.draw.rect(screen, (60, 60, 60), (bar_x, y + 2, bar_width, bar_height))
         hp_color = (80, 200, 80) if hp_ratio > 0.5 else (200, 200, 40) if hp_ratio > 0.25 else (200, 60, 60)
         pygame.draw.rect(screen, hp_color, (bar_x, y + 2, int(bar_width * hp_ratio), bar_height))
         pygame.draw.rect(screen, (180, 180, 180), (bar_x, y + 2, bar_width, bar_height), 1)
         hp_text = self.hud_font.render(f"{self.stats.current_hp}/{self.stats.max_hp}", True, (255, 255, 255))
         screen.blit(hp_text, (bar_x + bar_width + 6, y + 1))
-        y += 18
+        y += 20
 
         # SP bar
         sp_ratio = self.stats.current_sp / self.stats.max_sp if self.stats.max_sp > 0 else 0
         sp_label = self.hud_font.render("SP", True, (255, 255, 255))
-        screen.blit(sp_label, (x, y))
+        screen.blit(sp_label, (col_left, y))
         pygame.draw.rect(screen, (40, 40, 40), (bar_x, y + 2, bar_width, bar_height))
         pygame.draw.rect(screen, COLOR_SP_BAR, (bar_x, y + 2, int(bar_width * sp_ratio), bar_height))
         pygame.draw.rect(screen, (140, 140, 140), (bar_x, y + 2, bar_width, bar_height), 1)
         sp_text = self.hud_font.render(f"{self.stats.current_sp}/{self.stats.max_sp}", True, (255, 255, 255))
         screen.blit(sp_text, (bar_x + bar_width + 6, y + 1))
-        y += 18
+        y += 20
 
         # XP bar
         xp_label = self.hud_font.render("XP", True, (255, 255, 255))
-        screen.blit(xp_label, (x, y))
+        screen.blit(xp_label, (col_left, y))
         xp_needed = self.xp_to_next_level()
         xp_ratio = self.stats.xp / xp_needed if xp_needed > 0 else 0
         pygame.draw.rect(screen, (60, 60, 60), (bar_x, y + 2, bar_width, bar_height))
@@ -597,45 +645,43 @@ class OverworldState:
         pygame.draw.rect(screen, (180, 180, 180), (bar_x, y + 2, bar_width, bar_height), 1)
         xp_text = self.hud_font.render(f"{self.stats.xp}/{xp_needed}", True, (255, 255, 255))
         screen.blit(xp_text, (bar_x + bar_width + 6, y + 1))
-        y += 18
 
-        # Money line
+        # --- CENTER COLUMN: Money + map name ---
+        y = HUD_Y + pad
         money_label = self.hud_font.render(f"Scrap: {self.stats.money}", True, COLOR_MONEY_TEXT)
-        screen.blit(money_label, (x, y))
-        y += 18
+        screen.blit(money_label, (col_mid, y))
+        y += 20
 
-        # Unspent points indicator
+        map_def = MAP_REGISTRY.get(self.current_map_id)
+        if map_def:
+            map_label = self.hud_font.render(map_def.display_name, True, (200, 200, 200))
+            screen.blit(map_label, (col_mid, y))
+
+        # --- RIGHT COLUMN: Conditional notifications ---
+        y = HUD_Y + pad
         if self.stats.unspent_points > 0:
             pts_label = self.hud_font.render(
                 f"+{self.stats.unspent_points} pts [C]", True, (255, 220, 100)
             )
-            screen.blit(pts_label, (x, y))
-            y += 18
+            screen.blit(pts_label, (col_right, y))
+            y += 20
 
-        # Skill points indicator
         if self.player_skills.skill_points > 0:
             skill_label = self.hud_font.render(
                 f"+{self.player_skills.skill_points} skill pts [K]", True, (100, 180, 255)
             )
-            screen.blit(skill_label, (x, y))
-            y += 18
+            screen.blit(skill_label, (col_right, y))
+            y += 20
 
-        # Quest completable indicator
         if self.player_quests.has_completable():
             quest_label = self.hud_font.render("! Quest ready [Q]", True, (100, 255, 100))
-            screen.blit(quest_label, (x, y))
-            y += 18
+            screen.blit(quest_label, (col_right, y))
 
-        # Map name
-        map_def = MAP_REGISTRY.get(self.current_map_id)
-        if map_def and self.current_map_id != "overworld":
-            map_label = self.hud_font.render(map_def.display_name, True, (200, 200, 200))
-            screen.blit(map_label, (x, y))
-
-        # Pickup notification
-        if self.pickup_message:
-            msg_surf = self.hud_font.render(self.pickup_message, True, (255, 220, 100))
-            screen.blit(msg_surf, (SCREEN_WIDTH // 2 - msg_surf.get_width() // 2, 50))
+        # Vertical dividers between columns
+        div_x1 = SCREEN_WIDTH // 3
+        div_x2 = 2 * SCREEN_WIDTH // 3
+        pygame.draw.line(screen, COLOR_HUD_BORDER, (div_x1, HUD_Y + 6), (div_x1, HUD_Y + HUD_HEIGHT - 6), 1)
+        pygame.draw.line(screen, COLOR_HUD_BORDER, (div_x2, HUD_Y + 6), (div_x2, HUD_Y + HUD_HEIGHT - 6), 1)
 
     def _try_move(self, key):
         dx, dy, facing = DIRECTION_MAP[key]
@@ -644,17 +690,20 @@ class OverworldState:
         new_x = self.player_x + dx
         new_y = self.player_y + dy
 
-        if self.tilemap.is_walkable(new_x, new_y) and not self._npc_at(new_x, new_y):
+        walkable_check = self.tiled_renderer or self.tilemap
+        if walkable_check.is_walkable(new_x, new_y) and not self._npc_at(new_x, new_y):
             self.player_x = new_x
             self.player_y = new_y
             self.steps_since_encounter += 1
 
-            # Check for door transition
-            if self.tilemap.grid[new_y][new_x] == DOOR:
-                self._handle_door_transition()
-                return
+            # Check for door transition (always from MapDef doors list)
+            map_def = MAP_REGISTRY[self.current_map_id]
+            for door in map_def.doors:
+                if door.x == new_x and door.y == new_y:
+                    self._handle_door_transition()
+                    return
 
-            # Scrap pickup
+            # Scrap pickup (always consult the grid)
             if self.tilemap.grid[new_y][new_x] == SCRAP:
                 self.tilemap.grid[new_y][new_x] = GRASS if self.current_map_id == "overworld" else DIRT
                 self.inventory.add("Scrap Metal")
@@ -669,8 +718,7 @@ class OverworldState:
                 self.pickup_message = msg
                 self.pickup_message_timer = PICKUP_MESSAGE_DURATION
 
-            # Random encounter check on DIRT tiles
-            map_def = MAP_REGISTRY[self.current_map_id]
+            # Random encounter check (always consult the grid)
             if (
                 map_def.encounter_table
                 and self.steps_since_encounter >= MIN_STEPS_BETWEEN_ENCOUNTERS

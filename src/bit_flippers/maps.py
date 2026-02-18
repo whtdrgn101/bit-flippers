@@ -62,6 +62,7 @@ class MapDef:
     music_track: str = "overworld"
     tile_colors_override: dict | None = None
     icon_markers: list[IconMarker] = field(default_factory=list)
+    tmx_file: str | None = None
 
 
 @dataclass
@@ -415,6 +416,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
             IconMarker(39, 25, "sword", (255, 160, 60)),
             IconMarker(48, 28, "shield", (80, 160, 255)),
         ],
+        tmx_file="overworld.tmx",
     ),
     "tinker_shop": MapDef(
         map_id="tinker_shop",
@@ -435,6 +437,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         encounter_table=[],
         encounter_chance=0.0,
         music_track="overworld",
+        tmx_file="tinker_shop.tmx",
     ),
     "scrap_cave": MapDef(
         map_id="scrap_cave",

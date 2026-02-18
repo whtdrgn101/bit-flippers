@@ -3,7 +3,10 @@ name = "bit-flippers"
 version = "0.1.0"
 description = "A SNES-inspired turn-based RPG set in a post-apocalyptic world"
 requires-python = ">=3.11"
-dependencies = ["pygame-ce"]
+dependencies = [
+    "pygame-ce",
+    "pytmx>=3.32",
+]
 
 [project.scripts]
 bit-flippers = "bit_flippers.main:main"

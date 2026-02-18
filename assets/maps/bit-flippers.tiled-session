@@ -1,0 +1,46 @@
+{
+    "activeFile": "tilesets/basechip.tsx",
+    "expandedProjectPaths": [
+        ".",
+        "tilesets"
+    ],
+    "fileStates": {
+        "overworld.tmx": {
+            "scale": 1.5,
+            "selectedLayer": 2,
+            "viewCenter": {
+                "x": 1438.3333333333333,
+                "y": 890.9999999999999
+            }
+        },
+        "tilesets/basechip.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        },
+        "tilesets/grass_autotile.tsx": {
+            "scaleInDock": 1
+        },
+        "tilesets/water_static.tsx": {
+            "scaleInDock": 1
+        },
+        "tinker_shop.tmx": {
+            "scale": 2.36,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 192.5847457627119,
+                "y": 160.8050847457627
+            }
+        }
+    },
+    "openFiles": [
+        "tinker_shop.tmx",
+        "tilesets/basechip.tsx"
+    ],
+    "project": "bit-flippers.tiled-project",
+    "property.type": "bool",
+    "recentFiles": [
+        "tinker_shop.tmx",
+        "tilesets/basechip.tsx",
+        "overworld.tmx"
+    ]
+}

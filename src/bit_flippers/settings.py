@@ -1,6 +1,9 @@
 # Display
 SCREEN_WIDTH = 640
 SCREEN_HEIGHT = 480
+VIEWPORT_HEIGHT = 360
+HUD_HEIGHT = 120
+HUD_Y = 360
 TILE_SIZE = 32
 FPS = 60
 
@@ -16,6 +19,8 @@ COLOR_WATER = (40, 90, 160)
 COLOR_TREE = (30, 100, 40)
 COLOR_RUINS = (90, 85, 80)
 COLOR_BLACK = (0, 0, 0)
+COLOR_HUD_BG = (15, 15, 25)
+COLOR_HUD_BORDER = (80, 80, 100)
 
 # Player movement
 PLAYER_MOVE_SPEED = 320  # pixels/sec for visual interpolation (~100ms per tile)
