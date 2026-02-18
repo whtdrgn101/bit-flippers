@@ -174,3 +174,17 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Progression path: Overworld → Scrap Factory (via Forge Guardian), Scrap Cave → Reactor Core (via Meltdown Warden)
 - Per-area tile color overrides and tuned encounter chances
 - Boss-guarded doors connect areas with progressive difficulty
+
+## Milestone 19: Outdoor Tile Palette + Overworld Redesign
+- 5 new tile types: GRASS (walkable), PATH (walkable, no encounters), WATER (impassable), TREE (impassable), RUINS (impassable)
+- Procedural tile sprites for each new type with color fallbacks in generate_assets.py
+- Overworld redesigned from 40x30 dungeon-like grid to 80x60 outdoor landscape
+- Central settlement hub with shops and quest NPCs clustered around a PATH plaza with fountain
+- PATHs radiating outward to dungeon entrances (Scrap Cave NW, Scrap Factory E)
+- Natural boundaries: WATER streams/marsh, TREE borders and forest corridors, RUINS clusters
+- Gas station ruins in the north, old parking lot ruins in the south
+- Random encounters on GRASS and DIRT tiles only (PATH is safe — classic RPG convention)
+- Scrap pickup replaces tile with GRASS on overworld, DIRT in dungeons
+- Spawn validation: old saves gracefully fall back to map start if position is no longer walkable
+- `generate-assets` pyproject.toml script entry for `uv run generate-assets`
+- Dialogue and shop confirmation text word-wrapping to prevent overflow

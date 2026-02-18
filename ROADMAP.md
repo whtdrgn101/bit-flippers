@@ -1,21 +1,7 @@
 # Bit Flippers — Roadmap
 
 A SNES-inspired turn-based RPG set in a post-apocalyptic world.
-Milestones 1–18 completed — see [COMPLETED_ROADMAP.md](COMPLETED_ROADMAP.md) for history.
-
-## Milestone 19: Outdoor Tile Palette + Overworld Redesign
-**Status: Not started**
-- New tile types: GRASS (walkable, outdoor floor), PATH (walkable, roads/trails), WATER (impassable, natural boundary), TREE (impassable, forest/cover)
-- Procedural tile sprites for each new type with color fallbacks (extend `tilemap.py` and asset generator)
-- Redesign overworld map from dungeon-like rooms/corridors to an outdoor landscape:
-  - Central settlement hub with shops and quest NPCs clustered together
-  - Dirt paths radiating outward to dungeon entrances
-  - Natural boundaries: water edges, tree lines, rocky walls
-  - Open grassy areas with scattered scrap and random encounters
-  - Dungeon entrances as distinct landmarks (cave mouth, factory gate, etc.)
-- Larger overworld map (60x40 or bigger) to give space for exploration
-- Overworld music track distinct from dungeon music
-- Existing dungeon interiors (Scrap Cave, Factory, Reactor Core) keep their current indoor/underground aesthetic unchanged
+Milestones 1–19 completed — see [COMPLETED_ROADMAP.md](COMPLETED_ROADMAP.md) for history.
 
 ## Milestone 20: Dungeon Visual Identity + Music
 **Status: Not started**

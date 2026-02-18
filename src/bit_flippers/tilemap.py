@@ -1,19 +1,34 @@
 import os
 
 import pygame
-from bit_flippers.settings import TILE_SIZE, COLOR_DIRT, COLOR_WALL, COLOR_SCRAP, COLOR_DOOR
+from bit_flippers.settings import (
+    TILE_SIZE, COLOR_DIRT, COLOR_WALL, COLOR_SCRAP, COLOR_DOOR,
+    COLOR_GRASS, COLOR_PATH, COLOR_WATER, COLOR_TREE, COLOR_RUINS,
+)
 
 DIRT = 0
 WALL = 1
 SCRAP = 2
 DOOR = 3
+GRASS = 4
+PATH = 5
+WATER = 6
+TREE = 7
+RUINS = 8
 
 TILE_COLORS = {
     DIRT: COLOR_DIRT,
     WALL: COLOR_WALL,
     SCRAP: COLOR_SCRAP,
     DOOR: COLOR_DOOR,
+    GRASS: COLOR_GRASS,
+    PATH: COLOR_PATH,
+    WATER: COLOR_WATER,
+    TREE: COLOR_TREE,
+    RUINS: COLOR_RUINS,
 }
+
+_IMPASSABLE = frozenset({WALL, WATER, TREE, RUINS})
 
 _ASSET_DIR = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "assets")
@@ -31,8 +46,7 @@ def _load_tile_surfaces():
         return None
 
     surfaces = {}
-    # 4 columns: DIRT=0, WALL=1, SCRAP=2, DOOR=3
-    for col, tile_id in enumerate((DIRT, WALL, SCRAP, DOOR)):
+    for col, tile_id in enumerate((DIRT, WALL, SCRAP, DOOR, GRASS, PATH, WATER, TREE, RUINS)):
         src_x = col * TILE_SIZE
         if src_x + TILE_SIZE > sheet.get_width():
             break
@@ -91,7 +105,7 @@ class TileMap:
 
     def is_walkable(self, tile_x, tile_y):
         if 0 <= tile_x < self.width_tiles and 0 <= tile_y < self.height_tiles:
-            return self.grid[tile_y][tile_x] != WALL
+            return self.grid[tile_y][tile_x] not in _IMPASSABLE
         return False
 
     def draw(self, screen, camera):

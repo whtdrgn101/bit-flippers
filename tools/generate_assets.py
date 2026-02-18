@@ -524,7 +524,7 @@ def generate_enemy_volt_wraith():
 # ---------------------------------------------------------------------------
 
 def generate_tileset():
-    sheet = pygame.Surface((TILE * 4, TILE), pygame.SRCALPHA)
+    sheet = pygame.Surface((TILE * 9, TILE), pygame.SRCALPHA)
 
     # DIRT tile — noise texture
     dirt_base = (139, 90, 43)
@@ -699,6 +699,219 @@ def generate_tileset():
     for x in range(1, TILE - 1):
         highlight_px(door_frame, x, 1, door_base, 30)
     sheet.blit(door_frame, (TILE * 3, 0))
+
+    # GRASS tile — vibrant green with wildflowers
+    grass_base = (60, 140, 50)
+    grass_frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+    rng5 = random.Random(500)
+    for x in range(TILE):
+        for y in range(TILE):
+            variation = rng5.randint(-20, 20)
+            c = (
+                max(0, min(255, grass_base[0] + variation)),
+                max(0, min(255, grass_base[1] + variation)),
+                max(0, min(255, grass_base[2] + variation)),
+            )
+            grass_frame.set_at((x, y), c)
+    # Grass tuft clusters — lighter green streaks
+    tuft_color = (90, 180, 70)
+    for _ in range(rng5.randint(6, 8)):
+        tx, ty = rng5.randint(2, 29), rng5.randint(2, 29)
+        for dx in range(-1, 2):
+            for dy in range(0, 3):
+                px, py = tx + dx, ty + dy
+                if 0 <= px < TILE and 0 <= py < TILE:
+                    grass_frame.set_at((px, py), tuft_color)
+    # Tiny wildflower dots
+    flower_colors = [(255, 220, 60), (240, 130, 180), (255, 180, 50)]
+    for _ in range(rng5.randint(2, 3)):
+        fx, fy = rng5.randint(3, 28), rng5.randint(3, 28)
+        fc = rng5.choice(flower_colors)
+        grass_frame.set_at((fx, fy), fc)
+    # Sunlight highlight spots
+    for _ in range(4):
+        sx, sy = rng5.randint(2, 29), rng5.randint(2, 29)
+        highlight_px(grass_frame, sx, sy, grass_base, 40)
+    sheet.blit(grass_frame, (TILE * 4, 0))
+
+    # PATH tile — cracked asphalt, overgrown edges
+    path_base = (120, 115, 100)
+    path_frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+    rng6 = random.Random(600)
+    for x in range(TILE):
+        for y in range(TILE):
+            variation = rng6.randint(-10, 10)
+            c = (
+                max(0, min(255, path_base[0] + variation)),
+                max(0, min(255, path_base[1] + variation)),
+                max(0, min(255, path_base[2] + variation)),
+            )
+            path_frame.set_at((x, y), c)
+    # Dark crack lines
+    crack_color = (80, 75, 65)
+    for _ in range(rng6.randint(2, 3)):
+        cx = rng6.randint(6, 26)
+        cy = rng6.randint(4, 10)
+        for step in range(rng6.randint(8, 16)):
+            if 0 <= cx < TILE and 0 <= cy < TILE:
+                path_frame.set_at((cx, cy), crack_color)
+            cx += rng6.choice([-1, 0, 1])
+            cy += 1
+            cx = max(0, min(TILE - 1, cx))
+    # Green grass along edges (overgrown feel)
+    edge_green = (70, 130, 55)
+    for x in range(TILE):
+        for y in range(0, rng6.randint(2, 4)):
+            if rng6.random() < 0.6:
+                path_frame.set_at((x, y), edge_green)
+        for y in range(TILE - rng6.randint(2, 4), TILE):
+            if rng6.random() < 0.6:
+                path_frame.set_at((x, y), edge_green)
+    # Lighter concrete patches
+    for _ in range(3):
+        px, py = rng6.randint(6, 26), rng6.randint(6, 26)
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
+                ppx, ppy = px + dx, py + dy
+                if 0 <= ppx < TILE and 0 <= ppy < TILE:
+                    highlight_px(path_frame, ppx, ppy, path_base, 20)
+    sheet.blit(path_frame, (TILE * 5, 0))
+
+    # WATER tile — deep blue with ripple highlights
+    water_base = (40, 90, 160)
+    water_frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+    rng7 = random.Random(700)
+    for x in range(TILE):
+        for y in range(TILE):
+            variation = rng7.randint(-12, 12)
+            c = (
+                max(0, min(255, water_base[0] + variation)),
+                max(0, min(255, water_base[1] + variation)),
+                max(0, min(255, water_base[2] + variation)),
+            )
+            water_frame.set_at((x, y), c)
+    # Horizontal wavy ripple lines
+    ripple_color = (80, 140, 210)
+    for ry in (7, 13, 20, 26):
+        rx = rng7.randint(0, 4)
+        while rx < TILE:
+            seg_len = rng7.randint(3, 7)
+            for sx in range(rx, min(rx + seg_len, TILE)):
+                water_frame.set_at((sx, ry), ripple_color)
+            rx += seg_len + rng7.randint(2, 5)
+    # White specular dots
+    for _ in range(4):
+        sx, sy = rng7.randint(3, 28), rng7.randint(3, 28)
+        water_frame.set_at((sx, sy), (220, 230, 255))
+    sheet.blit(water_frame, (TILE * 6, 0))
+
+    # TREE tile — brown trunk with green foliage canopy
+    tree_frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+    rng8 = random.Random(800)
+    # Fill background with dark grass
+    for x in range(TILE):
+        for y in range(TILE):
+            variation = rng8.randint(-15, 15)
+            c = (
+                max(0, min(255, 30 + variation)),
+                max(0, min(255, 90 + variation)),
+                max(0, min(255, 35 + variation)),
+            )
+            tree_frame.set_at((x, y), c)
+    # Brown trunk at center-bottom
+    trunk_color = (80, 55, 30)
+    for tx in range(14, 18):
+        for ty in range(20, 28):
+            tree_frame.set_at((tx, ty), trunk_color)
+            if tx == 14:
+                shadow_px(tree_frame, tx, ty, trunk_color, 20)
+            if tx == 17:
+                highlight_px(tree_frame, tx, ty, trunk_color, 15)
+    # Circular foliage canopy
+    foliage_base = (30, 100, 40)
+    cx, cy, radius = 16, 13, 11
+    for x in range(TILE):
+        for y in range(TILE):
+            dx, dy = x - cx, y - cy
+            dist_sq = dx * dx + dy * dy
+            if dist_sq <= radius * radius:
+                variation = rng8.randint(-15, 15)
+                fc = (
+                    max(0, min(255, foliage_base[0] + variation)),
+                    max(0, min(255, foliage_base[1] + variation)),
+                    max(0, min(255, foliage_base[2] + variation)),
+                )
+                tree_frame.set_at((x, y), fc)
+    # Sun patches on top-left
+    for _ in range(6):
+        sx = rng8.randint(cx - 8, cx - 2)
+        sy = rng8.randint(cy - 8, cy - 2)
+        dx, dy = sx - cx, sy - cy
+        if dx * dx + dy * dy <= radius * radius and 0 <= sx < TILE and 0 <= sy < TILE:
+            highlight_px(tree_frame, sx, sy, foliage_base, 35)
+    # Shadow on bottom-right
+    for _ in range(6):
+        sx = rng8.randint(cx + 2, cx + 8)
+        sy = rng8.randint(cy + 2, cy + 8)
+        dx, dy = sx - cx, sy - cy
+        if dx * dx + dy * dy <= radius * radius and 0 <= sx < TILE and 0 <= sy < TILE:
+            shadow_px(tree_frame, sx, sy, foliage_base, 30)
+    sheet.blit(tree_frame, (TILE * 7, 0))
+
+    # RUINS tile — weathered concrete with broken bricks, rebar, moss
+    ruins_base = (90, 85, 80)
+    ruins_frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+    rng9 = random.Random(900)
+    # Base concrete with noise
+    for x in range(TILE):
+        for y in range(TILE):
+            variation = rng9.randint(-12, 12)
+            c = (
+                max(0, min(255, ruins_base[0] + variation)),
+                max(0, min(255, ruins_base[1] + variation)),
+                max(0, min(255, ruins_base[2] + variation)),
+            )
+            ruins_frame.set_at((x, y), c)
+    # Partial broken brick pattern
+    brick_color = (110, 90, 75)
+    mortar_gap = (65, 60, 55)
+    for row in range(4):
+        offset = 8 if (row % 2) else 0
+        by = row * 8
+        for bx_start in range(-8, TILE + 8, 16):
+            bx = bx_start + offset
+            # Some bricks missing
+            if rng9.random() < 0.3:
+                continue
+            for px in range(bx + 1, bx + 15):
+                for py in range(by + 1, by + 7):
+                    if 0 <= px < TILE and 0 <= py < TILE:
+                        ruins_frame.set_at((px, py), brick_color)
+            # Mortar gaps
+            for px in range(bx, bx + 16):
+                if 0 <= px < TILE and 0 <= by < TILE:
+                    ruins_frame.set_at((px, by), mortar_gap)
+    # Rust-colored rebar lines
+    rebar_color = (140, 70, 30)
+    for _ in range(rng9.randint(2, 3)):
+        ry = rng9.randint(4, 28)
+        rx_start = rng9.randint(2, 10)
+        rx_end = rng9.randint(rx_start + 6, min(rx_start + 16, 30))
+        for rx in range(rx_start, rx_end):
+            if 0 <= rx < TILE and 0 <= ry < TILE:
+                ruins_frame.set_at((rx, ry), rebar_color)
+    # Green moss patches in corners
+    moss_color = (60, 110, 45)
+    corners = [(2, 2), (28, 2), (2, 28), (28, 28)]
+    for mcx, mcy in corners:
+        if rng9.random() < 0.6:
+            for dx in range(-2, 3):
+                for dy in range(-2, 3):
+                    if abs(dx) + abs(dy) <= 3:
+                        mx, my = mcx + dx, mcy + dy
+                        if 0 <= mx < TILE and 0 <= my < TILE:
+                            ruins_frame.set_at((mx, my), moss_color)
+    sheet.blit(ruins_frame, (TILE * 8, 0))
 
     path = os.path.join(TILES_DIR, "tileset.png")
     pygame.image.save(sheet, path)

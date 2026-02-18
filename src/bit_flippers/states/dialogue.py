@@ -34,6 +34,23 @@ class DialogueState:
         )
         self.panel_surface.fill(COLOR_DIALOGUE_BG)
 
+    def _wrap_text(self, text, max_width):
+        """Word-wrap text to fit within max_width pixels."""
+        words = text.split()
+        lines = []
+        current = ""
+        for word in words:
+            test = f"{current} {word}".strip()
+            if self.text_font.size(test)[0] <= max_width:
+                current = test
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines or [""]
+
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and event.key in (
             pygame.K_SPACE,
@@ -71,14 +88,17 @@ class DialogueState:
         name_surf = self.name_font.render(self.npc_name, True, COLOR_NPC_NAME)
         screen.blit(name_surf, (self.padding, self.panel_y + self.padding))
 
-        # Dialogue text with typewriter effect
+        # Dialogue text with typewriter effect and word wrapping
         current_line = self.lines[self.line_index]
         visible_text = current_line[: int(self.chars_revealed)]
-        text_surf = self.text_font.render(visible_text, True, COLOR_DIALOGUE_TEXT)
-        screen.blit(
-            text_surf,
-            (self.padding, self.panel_y + self.padding + 28),
-        )
+        max_text_w = SCREEN_WIDTH - self.padding * 2
+        wrapped = self._wrap_text(visible_text, max_text_w)
+        line_h = self.text_font.get_linesize()
+        ty = self.panel_y + self.padding + 28
+        for wline in wrapped:
+            text_surf = self.text_font.render(wline, True, COLOR_DIALOGUE_TEXT)
+            screen.blit(text_surf, (self.padding, ty))
+            ty += line_h
 
         # Prompt indicator when line is fully revealed
         if self.fully_revealed:

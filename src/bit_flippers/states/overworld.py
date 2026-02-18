@@ -16,7 +16,7 @@ from bit_flippers.settings import (
     COLOR_MONEY_TEXT,
 )
 from bit_flippers.camera import Camera
-from bit_flippers.tilemap import TileMap, DIRT, SCRAP, DOOR
+from bit_flippers.tilemap import TileMap, DIRT, SCRAP, DOOR, GRASS
 from bit_flippers.sprites import create_placeholder_npc, load_player
 from bit_flippers.npc import make_npc
 from bit_flippers.items import Inventory, Equipment, WEAPONSMITH_STOCK, ARMORSMITH_STOCK
@@ -26,6 +26,7 @@ from bit_flippers.save import save_game
 from bit_flippers.strings import get_npc_dialogue
 
 MOVE_COOLDOWN = 0.15  # seconds between steps
+_ENCOUNTER_TILES = frozenset({DIRT, GRASS})
 
 # Map from pygame key to (dx, dy, direction_name)
 DIRECTION_MAP = {
@@ -176,9 +177,10 @@ class OverworldState:
 
         # Apply persistence — remove collected scrap
         persist = self._get_persistence(map_id)
+        scrap_replacement = GRASS if map_id == "overworld" else DIRT
         for (sx, sy) in persist.collected_scrap:
             if 0 <= sy < len(grid) and 0 <= sx < len(grid[sy]):
-                grid[sy][sx] = DIRT
+                grid[sy][sx] = scrap_replacement
 
         # Create tilemap and camera
         self.tilemap = TileMap(grid, tile_colors_override=map_def.tile_colors_override)
@@ -187,6 +189,10 @@ class OverworldState:
         # Set player position
         px = spawn_x if spawn_x is not None else map_def.player_start_x
         py = spawn_y if spawn_y is not None else map_def.player_start_y
+        # Spawn validation: if position isn't walkable (e.g. map redesigned), fall back
+        if not self.tilemap.is_walkable(px, py):
+            px = map_def.player_start_x
+            py = map_def.player_start_y
         self.player_x = px
         self.player_y = py
         self.player_visual_x = float(px * TILE_SIZE)
@@ -650,7 +656,7 @@ class OverworldState:
 
             # Scrap pickup
             if self.tilemap.grid[new_y][new_x] == SCRAP:
-                self.tilemap.grid[new_y][new_x] = DIRT
+                self.tilemap.grid[new_y][new_x] = GRASS if self.current_map_id == "overworld" else DIRT
                 self.inventory.add("Scrap Metal")
                 self.stats.money += 1
                 self.game.audio.play_sfx("pickup")
@@ -668,7 +674,7 @@ class OverworldState:
             if (
                 map_def.encounter_table
                 and self.steps_since_encounter >= MIN_STEPS_BETWEEN_ENCOUNTERS
-                and self.tilemap.grid[new_y][new_x] == DIRT
+                and self.tilemap.grid[new_y][new_x] in _ENCOUNTER_TILES
                 and random.random() < map_def.encounter_chance
             ):
                 self._start_random_combat()

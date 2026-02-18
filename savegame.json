@@ -3,77 +3,101 @@
   "stats": {
     "max_hp": 30,
     "max_sp": 10,
-    "strength": 6,
-    "dexterity": 6,
-    "resilience": 3,
+    "strength": 9,
+    "dexterity": 8,
+    "resilience": 6,
     "constitution": 3,
     "intelligence": 3,
-    "level": 2,
-    "xp": 26,
-    "money": 8,
+    "level": 6,
+    "xp": 108,
+    "money": 54,
     "unspent_points": 0,
     "current_hp": 15,
     "current_sp": 10
   },
   "skills": {
     "unlocked": [
-      "shrapnel_blast"
+      "jury_rig_shield",
+      "patchwork_heal",
+      "scrap_leech",
+      "shrapnel_blast",
+      "voltage_surge"
     ],
     "skill_points": 0
   },
   "inventory": {
-    "Repair Kit": 3,
-    "Scrap Metal": 5,
-    "Iron Plating": 1
+    "Repair Kit": 2,
+    "Scrap Metal": 17,
+    "Voltage Spike": 1,
+    "Iron Plating": 1,
+    "Titanium Aegis Plate": 1,
+    "Titanium Reflex Core": 1
   },
   "equipment": {
     "weapon": null,
-    "armor": null,
-    "accessory": null
+    "armor": "Titanium Aegis Plate",
+    "accessory": "Titanium Reflex Core"
+  },
+  "quests": {
+    "states": {
+      "pest_control": "active",
+      "factory_sweep": "active"
+    },
+    "objectives": {
+      "pest_control": [
+        {
+          "obj_type": "kill",
+          "target": "Scrap Rat",
+          "required": 4,
+          "current": 2
+        }
+      ],
+      "factory_sweep": [
+        {
+          "obj_type": "kill",
+          "target": "Plasma Hound",
+          "required": 3,
+          "current": 1
+        }
+      ]
+    }
   },
   "current_map_id": "iron_shell",
   "player_x": 5,
-  "player_y": 2,
+  "player_y": 5,
   "player_facing": "left",
-  "steps_since_encounter": 27,
+  "steps_since_encounter": 35,
   "map_persistence": {
     "overworld": {
       "collected_scrap": [
         [
-          6,
-          8
+          8,
+          7
         ],
         [
-          7,
-          24
+          28,
+          5
         ],
         [
-          10,
-          4
+          40,
+          42
         ],
         [
-          16,
-          15
+          48,
+          6
+        ],
+        [
+          55,
+          45
+        ],
+        [
+          65,
+          48
         ]
       ],
-      "defeated_enemies": []
-    },
-    "tinker_shop": {
-      "collected_scrap": [],
-      "defeated_enemies": []
-    },
-    "scrap_cave": {
-      "collected_scrap": [
-        [
-          17,
-          10
-        ]
-      ],
-      "defeated_enemies": []
-    },
-    "reactor_core": {
-      "collected_scrap": [],
-      "defeated_enemies": []
+      "defeated_enemies": [
+        0
+      ]
     },
     "volt_forge": {
       "collected_scrap": [],
@@ -82,6 +106,64 @@
     "iron_shell": {
       "collected_scrap": [],
       "defeated_enemies": []
+    },
+    "scrap_cave": {
+      "collected_scrap": [
+        [
+          2,
+          6
+        ],
+        [
+          7,
+          2
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          17,
+          2
+        ],
+        [
+          17,
+          10
+        ]
+      ],
+      "defeated_enemies": [
+        0
+      ]
+    },
+    "scrap_factory": {
+      "collected_scrap": [
+        [
+          2,
+          14
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          14,
+          8
+        ],
+        [
+          21,
+          4
+        ],
+        [
+          22,
+          12
+        ]
+      ],
+      "defeated_enemies": [
+        0
+      ]
     }
   }
 }

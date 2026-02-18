@@ -319,6 +319,23 @@ class ShopState:
                 desc = self.font_desc.render(desc_text, True, (180, 180, 180))
                 screen.blit(desc, (80, SCREEN_HEIGHT - 80))
 
+    def _wrap_text(self, font, text, max_width):
+        """Word-wrap text to fit within max_width, returning list of lines."""
+        words = text.split()
+        lines = []
+        current = ""
+        for word in words:
+            test = f"{current} {word}".strip()
+            if font.size(test)[0] <= max_width:
+                current = test
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines
+
     def _draw_confirm(self, screen):
         screen.blit(self.confirm_overlay, (0, 0))
 
@@ -326,21 +343,31 @@ class ShopState:
         if not item:
             return
 
-        # Confirmation box
-        box_w, box_h = 320, 120
+        # Confirmation box — sized to fit content
+        box_w = 360
+        padding = 16
+        prompt_text = f"Buy {item.name} for {item.price} Scrap?"
+        wrapped = self._wrap_text(self.font_item, prompt_text, box_w - padding * 2)
+        line_h = self.font_item.get_linesize()
+        text_block_h = line_h * len(wrapped)
+        box_h = 40 + text_block_h + 50  # top margin + text + button area
         box_x = SCREEN_WIDTH // 2 - box_w // 2
         box_y = SCREEN_HEIGHT // 2 - box_h // 2
         pygame.draw.rect(screen, (30, 30, 50), (box_x, box_y, box_w, box_h))
         pygame.draw.rect(screen, (180, 180, 180), (box_x, box_y, box_w, box_h), 2)
 
-        prompt = self.font_item.render(f"Buy {item.name} for {item.price} Scrap?", True, (255, 255, 255))
-        screen.blit(prompt, (box_x + box_w // 2 - prompt.get_width() // 2, box_y + 20))
+        # Draw wrapped prompt text
+        ty = box_y + 16
+        for line in wrapped:
+            surf = self.font_item.render(line, True, (255, 255, 255))
+            screen.blit(surf, (box_x + box_w // 2 - surf.get_width() // 2, ty))
+            ty += line_h
 
         # Yes / No
         yes_color = COLOR_ITEM_HIGHLIGHT if self.confirm_cursor == 0 else (180, 180, 180)
         no_color = COLOR_ITEM_HIGHLIGHT if self.confirm_cursor == 1 else (180, 180, 180)
         yes_text = self.font_tab.render("Yes", True, yes_color)
         no_text = self.font_tab.render("No", True, no_color)
-        btn_y = box_y + 70
+        btn_y = box_y + box_h - 40
         screen.blit(yes_text, (box_x + box_w // 3 - yes_text.get_width() // 2, btn_y))
         screen.blit(no_text, (box_x + 2 * box_w // 3 - no_text.get_width() // 2, btn_y))
