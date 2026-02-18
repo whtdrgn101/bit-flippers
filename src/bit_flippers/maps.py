@@ -458,6 +458,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         encounter_chance=0.05,
         music_track="overworld",
         tile_colors_override={0: (100, 70, 40)},  # darker dirt for cave
+        tmx_file="scrap_cave.tmx",
     ),
     "scrap_factory": MapDef(
         map_id="scrap_factory",
@@ -481,6 +482,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         encounter_chance=0.06,
         music_track="overworld",
         tile_colors_override={0: (80, 80, 90)},  # grey-blue factory floor
+        tmx_file="scrap_factory.tmx",
     ),
     "reactor_core": MapDef(
         map_id="reactor_core",
@@ -499,6 +501,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         encounter_chance=0.07,
         music_track="overworld",
         tile_colors_override={0: (50, 40, 60)},  # dark purple reactor floor
+        tmx_file="reactor_core.tmx",
     ),
     "volt_forge": MapDef(
         map_id="volt_forge",
@@ -521,6 +524,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         encounter_chance=0.0,
         music_track="overworld",
         tile_colors_override={0: (140, 100, 50)},  # warm orange floor
+        tmx_file="volt_forge.tmx",
     ),
     "iron_shell": MapDef(
         map_id="iron_shell",
@@ -543,5 +547,6 @@ MAP_REGISTRY: dict[str, MapDef] = {
         encounter_chance=0.0,
         music_track="overworld",
         tile_colors_override={0: (60, 80, 120)},  # cool blue floor
+        tmx_file="iron_shell.tmx",
     ),
 }

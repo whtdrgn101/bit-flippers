@@ -188,3 +188,21 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Spawn validation: old saves gracefully fall back to map start if position is no longer walkable
 - `generate-assets` pyproject.toml script entry for `uv run generate-assets`
 - Dialogue and shop confirmation text word-wrapping to prevent overflow
+
+## Milestone 20: HUD Redesign + Tiled Integration
+- Dedicated bottom HUD panel (640x120) with three-column layout: stats, map info, notifications
+- Game viewport clipped to top 360px, HUD in bottom 120px
+- Tiled map editor (.tmx) support via pytmx — additive alongside existing grid maps
+- TiledMapRenderer with below/above sprite layer support and tile-property walkability
+- Proof of concept: Tinker's Shop rendered from .tmx file
+
+## Milestone 20a: Visual Upgrade — Pipoya Tileset
+- Integrated Pipoya FREE RPG Tileset 32x32 for late-SNES/early-PS1 art style
+- All 7 maps converted from Python grid rendering to .tmx files with Pipoya tiles
+- Overworld TMX generator with grass/water autotile edges, 2x2 tree placement, building wall detection
+- Interior TMX generators for cave (stone), factory (industrial), reactor (stone), and shop themes
+- Three-layer system: ground (base terrain), detail (walls/objects), above (canopies/roofs over player)
+- Tile-property walkability: `walkable=false` in .tsx tilesets controls collision for all tiled maps
+- Water tiles, tree trunks/canopies, building walls, stone walls, counters all block movement via tile properties
+- Maps editable in Tiled editor — hand-painted Tinker's Shop with custom tile placement
+- Grid data preserved alongside TMX for gameplay logic (scrap pickup, encounter zones, door transitions)

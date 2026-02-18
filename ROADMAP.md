@@ -1,22 +1,9 @@
 # Bit Flippers — Roadmap
 
-A SNES-inspired turn-based RPG set in a post-apocalyptic world.
-Milestones 1–19 completed — see [COMPLETED_ROADMAP.md](COMPLETED_ROADMAP.md) for history.
+A SNES-inspired RPG set in a world where nature reclaimed ancient technology.
+Milestones 1–20a completed — see [COMPLETED_ROADMAP.md](COMPLETED_ROADMAP.md) for history.
 
-## Milestone 20: HUD Redesign + Tiled Integration
-**Status: Complete**
-- Dedicated bottom HUD panel (640×120) with three-column layout: stats, map info, notifications
-- Game viewport clipped to top 360px, HUD in bottom 120px
-- Tiled map editor (.tmx) support via pytmx — additive alongside existing grid maps
-- TiledMapRenderer with below/above sprite layer support and tile-property walkability
-- Proof of concept: Tinker's Shop rendered from .tmx file
-
-## Milestone 20a: Visual Upgrade — New Tilesets
-**Status: Not started**
-- Find/create improved tile artwork for late-SNES/early-PS1 style
-- Convert remaining maps from Python grids to .tmx files
-- New tile varieties per area theme (indoor wood/stone, cave rock, factory metal)
-- Tileset organization and Tiled editor workflow documentation
+## Milestone 21: Dungeon Visual Identity + Music
 
 ## Milestone 21: Dungeon Visual Identity + Music
 **Status: Not started**
