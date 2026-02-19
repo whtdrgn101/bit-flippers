@@ -1,5 +1,5 @@
 {
-    "activeFile": "reactor_core.tmx",
+    "activeFile": "volt_forge.tmx",
     "expandedProjectPaths": [
         "tilesets",
         "."
@@ -9,24 +9,40 @@
             "scale": 2.678472222222222,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 159.79258491055225,
-                "y": 144.1120041483018
+                "x": 135.8983666061706,
+                "y": 144.11200414830182
             }
         },
         "overworld.tmx": {
             "scale": 1.5,
-            "selectedLayer": 2,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 1438.6666666666665,
-                "y": 890.6666666666666
+                "x": 2132,
+                "y": 911.3333333333333
             }
         },
         "reactor_core.tmx": {
-            "scale": 1.5833333333333333,
+            "scale": 1.5,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 247.99999999999997,
+                "y": 207.99999999999997
+            }
+        },
+        "scrap_cave.tmx": {
+            "scale": 1.2186718749999998,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 288.00000000000006,
-                "y": 224.21052631578948
+                "x": 320.0205141355215,
+                "y": 239.605102891211
+            }
+        },
+        "scrap_factory.tmx": {
+            "scale": 0.9749375,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 400.0256426694019,
+                "y": 288.22360407718446
             }
         },
         "tilesets/basechip.tsx": {
@@ -37,14 +53,23 @@
             "scaleInDock": 1
         },
         "tilesets/water_static.tsx": {
-            "scaleInDock": 1
+            "scaleInDock": 1,
+            "scaleInEditor": 1
         },
         "tinker_shop.tmx": {
             "scale": 2.36,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 191.9491525423729,
-                "y": 157.62711864406782
+                "x": 191.94915254237287,
+                "y": 157.6271186440678
+            }
+        },
+        "volt_forge.tmx": {
+            "scale": 2.4373437499999997,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 160.01025706776076,
+                "y": 144.0092313609847
             }
         }
     },
@@ -53,7 +78,10 @@
         "tilesets/basechip.tsx",
         "iron_shell.tmx",
         "overworld.tmx",
-        "reactor_core.tmx"
+        "reactor_core.tmx",
+        "scrap_cave.tmx",
+        "scrap_factory.tmx",
+        "volt_forge.tmx"
     ],
     "project": "bit-flippers.tiled-project",
     "property.type": "bool",
@@ -62,6 +90,10 @@
         "tilesets/basechip.tsx",
         "iron_shell.tmx",
         "overworld.tmx",
-        "reactor_core.tmx"
+        "reactor_core.tmx",
+        "scrap_cave.tmx",
+        "scrap_factory.tmx",
+        "volt_forge.tmx",
+        "tilesets/water_static.tsx"
     ]
 }

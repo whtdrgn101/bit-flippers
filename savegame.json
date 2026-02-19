@@ -8,16 +8,16 @@
     "resilience": 3,
     "constitution": 3,
     "intelligence": 3,
-    "level": 1,
-    "xp": 0,
-    "money": 0,
-    "unspent_points": 0,
+    "level": 2,
+    "xp": 6,
+    "money": 17,
+    "unspent_points": 2,
     "current_hp": 30,
     "current_sp": 10
   },
   "skills": {
     "unlocked": [],
-    "skill_points": 0
+    "skill_points": 1
   },
   "inventory": {
     "Repair Kit": 3
@@ -31,11 +31,11 @@
     "states": {},
     "objectives": {}
   },
-  "current_map_id": "tinker_shop",
-  "player_x": 4,
-  "player_y": 2,
-  "player_facing": "right",
-  "steps_since_encounter": 29,
+  "current_map_id": "overworld",
+  "player_x": 65,
+  "player_y": 31,
+  "player_facing": "down",
+  "steps_since_encounter": 0,
   "map_persistence": {
     "overworld": {
       "collected_scrap": [
@@ -86,7 +86,11 @@
       ],
       "defeated_enemies": []
     },
-    "tinker_shop": {
+    "volt_forge": {
+      "collected_scrap": [],
+      "defeated_enemies": []
+    },
+    "iron_shell": {
       "collected_scrap": [],
       "defeated_enemies": []
     }
