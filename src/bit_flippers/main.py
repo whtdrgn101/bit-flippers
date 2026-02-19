@@ -1,6 +1,7 @@
 import pygame
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT, FPS, COLOR_BLACK
 from bit_flippers.audio import AudioManager
+from bit_flippers.save import load_config
 from bit_flippers.states.title_screen import TitleScreenState
 
 
@@ -11,6 +12,14 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         self.audio = AudioManager()
+
+        # Apply saved volume preferences
+        config = load_config()
+        if "sfx_volume" in config:
+            self.audio.set_sfx_volume(config["sfx_volume"] / 100.0)
+        if "music_volume" in config:
+            self.audio.set_music_volume(config["music_volume"] / 100.0)
+
         self.state_stack: list = []
         self.state_stack.append(TitleScreenState(self))
 

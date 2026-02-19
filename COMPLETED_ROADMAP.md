@@ -206,3 +206,31 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Water tiles, tree trunks/canopies, building walls, stone walls, counters all block movement via tile properties
 - Maps editable in Tiled editor — hand-painted Tinker's Shop with custom tile placement
 - Grid data preserved alongside TMX for gameplay logic (scrap pickup, encounter zones, door transitions)
+
+## Milestone 20b: Engine Polish & Systems
+### Audio
+- Procedural SFX generation (hit, victory, pickup, dialogue_advance, level_up) via wave/struct in generate_assets.py
+- Procedural music generation (overworld, combat, cave, factory, reactor, shop) — looping WAV tracks with melody + bass
+- Per-area music tracks: shops play `shop`, cave plays `cave`, factory plays `factory`, reactor plays `reactor`
+### Visual Polish (completed in earlier phases)
+- Screen transitions: fade/wipe effects for map changes and combat entry/exit
+- Skill/combat VFX: unique particle effects per skill
+- Custom pixel font (Silkscreen) replacing all SysFont usage
+- Level-up fanfare animation and sound
+### Balance & Gameplay (completed in earlier phases)
+- Flee chance factors in dexterity
+- Death penalty: 30% scrap loss + 60% HP respawn
+- SP regen factors in intelligence (+1 base, +1 per 3 INT above 3)
+- Bonus item pool moved to settings.py config
+### Player Customization
+- Character sprite selection at game start: 8 choices (4 male + 4 female Pipoya sprites)
+- Sprite key persisted in save data and threaded through overworld, combat, and save/load
+### UI
+- Minimap in HUD showing walkable/wall tiles, doors, and blinking player position (TAB to toggle)
+- Options menu with SFX/music volume sliders (0-100%, 10% steps), accessible from title and pause screens
+- Auto-save visual indicator ("Saving..." with fade-out) on combat victory and quest completion
+- Multiple save slots (5 slots) with save menu for load/save
+### Save System
+- Platform-appropriate save location (macOS ~/Library/Application Support/BitFlippers/, Linux ~/.local/share/, Windows %APPDATA%)
+- Legacy save migration from project root to platform directory
+- Config persistence (volume preferences) in config.json alongside saves

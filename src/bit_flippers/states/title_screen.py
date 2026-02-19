@@ -10,7 +10,7 @@ class TitleScreenState:
     def __init__(self, game):
         self.game = game
         self.cursor = 0
-        self.options = ["New Game", "Continue", "About"]
+        self.options = ["New Game", "Continue", "Options", "About"]
 
         self.font_title = get_font(56)
         self.font_subtitle = get_font(28)
@@ -33,9 +33,14 @@ class TitleScreenState:
 
     def _select(self, option):
         if option == "New Game":
-            from bit_flippers.states.overworld import OverworldState
-            self.game.state_stack.clear()
-            self.game.push_state(OverworldState(self.game))
+            from bit_flippers.states.character_select import CharacterSelectState
+
+            def _on_char_select(sprite_key, _game=self.game):
+                from bit_flippers.states.overworld import OverworldState
+                _game.state_stack.clear()
+                _game.push_state(OverworldState(_game, sprite_key=sprite_key))
+
+            self.game.push_state(CharacterSelectState(self.game, _on_char_select))
         elif option == "Continue":
             if not has_save():
                 return
@@ -47,6 +52,9 @@ class TitleScreenState:
                 _game.push_state(OverworldState(_game, save_data=save_data))
 
             self.game.push_state(SaveMenuState(self.game, mode="load", on_load=_on_load))
+        elif option == "Options":
+            from bit_flippers.states.options_menu import OptionsMenuState
+            self.game.push_state(OptionsMenuState(self.game))
         elif option == "About":
             from bit_flippers.states.about_screen import AboutScreenState
             self.game.push_state(AboutScreenState(self.game))

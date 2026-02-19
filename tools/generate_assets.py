@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Generate pixel art PNGs for Bit Flippers.
+"""Generate pixel art PNGs and procedural audio for Bit Flippers.
 
 Run:  python tools/generate_assets.py
 
 Uses SDL dummy video driver for headless operation.
 All outputs go under assets/ relative to the project root.
 """
+import math
 import os
 import random
+import struct
 import sys
+import wave
 
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
@@ -25,6 +28,8 @@ TILE = 32  # base tile size
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SPRITES_DIR = os.path.join(PROJECT_ROOT, "assets", "sprites")
 TILES_DIR = os.path.join(PROJECT_ROOT, "assets", "tiles")
+SOUNDS_DIR = os.path.join(PROJECT_ROOT, "assets", "sounds")
+MUSIC_DIR = os.path.join(PROJECT_ROOT, "assets", "music")
 
 
 def ensure_dirs():
@@ -919,6 +924,358 @@ def generate_tileset():
 
 
 # ---------------------------------------------------------------------------
+# Audio helpers
+# ---------------------------------------------------------------------------
+
+_DEFAULT_SAMPLE_RATE = 22050
+
+
+def _make_sine(freq, duration, volume=0.5, sample_rate=_DEFAULT_SAMPLE_RATE):
+    """Generate sine wave samples as a list of floats in [-1, 1]."""
+    n = int(sample_rate * duration)
+    return [volume * math.sin(2 * math.pi * freq * i / sample_rate) for i in range(n)]
+
+
+def _make_noise(duration, volume=0.3, sample_rate=_DEFAULT_SAMPLE_RATE):
+    """Generate white noise samples."""
+    rng = random.Random(999)
+    n = int(sample_rate * duration)
+    return [volume * (rng.random() * 2 - 1) for _ in range(n)]
+
+
+def _make_sweep(f0, f1, duration, volume=0.5, sample_rate=_DEFAULT_SAMPLE_RATE):
+    """Generate a linear frequency sweep from f0 to f1."""
+    n = int(sample_rate * duration)
+    samples = []
+    for i in range(n):
+        t = i / sample_rate
+        freq = f0 + (f1 - f0) * (i / n)
+        samples.append(volume * math.sin(2 * math.pi * freq * t))
+    return samples
+
+
+def _apply_envelope(samples, attack=0.01, decay=0.05, sample_rate=_DEFAULT_SAMPLE_RATE):
+    """Apply attack/decay envelope to samples."""
+    n = len(samples)
+    attack_samples = int(attack * sample_rate)
+    decay_samples = int(decay * sample_rate)
+    result = list(samples)
+    for i in range(min(attack_samples, n)):
+        result[i] *= i / attack_samples
+    for i in range(min(decay_samples, n)):
+        idx = n - 1 - i
+        if idx >= 0:
+            result[idx] *= i / decay_samples
+    return result
+
+
+def _mix(a, b):
+    """Mix two sample lists together, zero-padding the shorter one."""
+    length = max(len(a), len(b))
+    result = [0.0] * length
+    for i in range(len(a)):
+        result[i] += a[i]
+    for i in range(len(b)):
+        result[i] += b[i]
+    # Clamp
+    return [max(-1.0, min(1.0, s)) for s in result]
+
+
+def _concat(*parts):
+    """Concatenate multiple sample lists."""
+    result = []
+    for p in parts:
+        result.extend(p)
+    return result
+
+
+def _write_wav(path, samples, sample_rate=_DEFAULT_SAMPLE_RATE):
+    """Write mono 16-bit WAV file from float samples in [-1, 1]."""
+    with wave.open(path, "w") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        data = b""
+        for s in samples:
+            clamped = max(-1.0, min(1.0, s))
+            data += struct.pack("<h", int(clamped * 32767))
+        wf.writeframes(data)
+
+
+# ---------------------------------------------------------------------------
+# SFX generation
+# ---------------------------------------------------------------------------
+
+def generate_sfx():
+    """Generate all sound effect WAV files."""
+
+    # hit.wav — 80ms noise burst with fast decay
+    samples = _make_noise(0.08, volume=0.6)
+    samples = _apply_envelope(samples, attack=0.002, decay=0.06)
+    path = os.path.join(SOUNDS_DIR, "hit.wav")
+    _write_wav(path, samples)
+    print(f"  Created {path}")
+
+    # victory.wav — 3-note ascending arpeggio C5→E5→G5
+    note_dur = 0.17
+    c5 = _apply_envelope(_make_sine(523.25, note_dur, 0.4), attack=0.005, decay=0.08)
+    e5 = _apply_envelope(_make_sine(659.25, note_dur, 0.4), attack=0.005, decay=0.08)
+    g5 = _apply_envelope(_make_sine(783.99, note_dur, 0.4), attack=0.005, decay=0.08)
+    samples = _concat(c5, e5, g5)
+    path = os.path.join(SOUNDS_DIR, "victory.wav")
+    _write_wav(path, samples)
+    print(f"  Created {path}")
+
+    # pickup.wav — quick rising chirp 400→1200 Hz
+    samples = _make_sweep(400, 1200, 0.1, volume=0.4)
+    samples = _apply_envelope(samples, attack=0.005, decay=0.05)
+    path = os.path.join(SOUNDS_DIR, "pickup.wav")
+    _write_wav(path, samples)
+    print(f"  Created {path}")
+
+    # dialogue_advance.wav — soft click/blip
+    samples = _make_sine(800, 0.05, volume=0.25)
+    samples = _apply_envelope(samples, attack=0.002, decay=0.03)
+    path = os.path.join(SOUNDS_DIR, "dialogue_advance.wav")
+    _write_wav(path, samples)
+    print(f"  Created {path}")
+
+    # level_up.wav — 4-note ascending arpeggio with harmony
+    note_dur = 0.2
+    c4 = _apply_envelope(_make_sine(261.63, note_dur, 0.35), attack=0.005, decay=0.1)
+    c4h = _apply_envelope(_make_sine(329.63, note_dur, 0.15), attack=0.005, decay=0.1)
+    e4 = _apply_envelope(_make_sine(329.63, note_dur, 0.35), attack=0.005, decay=0.1)
+    e4h = _apply_envelope(_make_sine(392.00, note_dur, 0.15), attack=0.005, decay=0.1)
+    g4 = _apply_envelope(_make_sine(392.00, note_dur, 0.35), attack=0.005, decay=0.1)
+    g4h = _apply_envelope(_make_sine(493.88, note_dur, 0.15), attack=0.005, decay=0.1)
+    c5 = _apply_envelope(_make_sine(523.25, note_dur, 0.4), attack=0.005, decay=0.15)
+    c5h = _apply_envelope(_make_sine(659.25, note_dur, 0.2), attack=0.005, decay=0.15)
+    samples = _concat(
+        _mix(c4, c4h), _mix(e4, e4h), _mix(g4, g4h), _mix(c5, c5h),
+    )
+    path = os.path.join(SOUNDS_DIR, "level_up.wav")
+    _write_wav(path, samples)
+    print(f"  Created {path}")
+
+
+# ---------------------------------------------------------------------------
+# Music generation
+# ---------------------------------------------------------------------------
+
+def _make_note(freq, duration, volume=0.3, sample_rate=_DEFAULT_SAMPLE_RATE):
+    """Make an enveloped sine note with slight harmonics for warmth."""
+    fundamental = _make_sine(freq, duration, volume * 0.7, sample_rate)
+    harmonic = _make_sine(freq * 2, duration, volume * 0.2, sample_rate)
+    third = _make_sine(freq * 3, duration, volume * 0.1, sample_rate)
+    mixed = _mix(_mix(fundamental, harmonic), third)
+    return _apply_envelope(mixed, attack=0.01, decay=0.05, sample_rate=sample_rate)
+
+
+def _make_bass_note(freq, duration, volume=0.25, sample_rate=_DEFAULT_SAMPLE_RATE):
+    """Low-frequency bass note with quick attack."""
+    fundamental = _make_sine(freq, duration, volume * 0.8, sample_rate)
+    sub = _make_sine(freq * 0.5, duration, volume * 0.2, sample_rate)
+    mixed = _mix(fundamental, sub)
+    return _apply_envelope(mixed, attack=0.005, decay=0.03, sample_rate=sample_rate)
+
+
+def generate_music():
+    """Generate all music WAV files."""
+    sr = _DEFAULT_SAMPLE_RATE
+
+    # --- overworld.wav: calm major-key melody, ~20s loop ---
+    tempo = 0.3  # seconds per note
+    # C major melody
+    melody_freqs = [
+        261.63, 293.66, 329.63, 349.23, 392.00, 349.23, 329.63, 293.66,
+        261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 293.66, 261.63,
+        293.66, 349.23, 392.00, 440.00, 392.00, 349.23, 329.63, 293.66,
+        261.63, 329.63, 261.63, 196.00, 220.00, 261.63, 293.66, 261.63,
+        329.63, 349.23, 392.00, 440.00, 523.25, 440.00, 392.00, 349.23,
+        329.63, 293.66, 261.63, 293.66, 329.63, 261.63, 196.00, 261.63,
+        261.63, 329.63, 392.00, 349.23, 329.63, 293.66, 261.63, 293.66,
+        329.63, 392.00, 440.00, 392.00, 349.23, 329.63, 293.66, 261.63,
+    ]
+    bass_freqs = [
+        130.81, 130.81, 164.81, 164.81, 196.00, 196.00, 164.81, 130.81,
+        130.81, 164.81, 196.00, 261.63, 196.00, 164.81, 146.83, 130.81,
+        146.83, 174.61, 196.00, 220.00, 196.00, 174.61, 164.81, 146.83,
+        130.81, 164.81, 130.81, 98.00, 110.00, 130.81, 146.83, 130.81,
+        164.81, 174.61, 196.00, 220.00, 261.63, 220.00, 196.00, 174.61,
+        164.81, 146.83, 130.81, 146.83, 164.81, 130.81, 98.00, 130.81,
+        130.81, 164.81, 196.00, 174.61, 164.81, 146.83, 130.81, 146.83,
+        164.81, 196.00, 220.00, 196.00, 174.61, 164.81, 146.83, 130.81,
+    ]
+    melody = []
+    bass = []
+    for i, freq in enumerate(melody_freqs):
+        melody.extend(_make_note(freq, tempo * 0.9, 0.25, sr))
+        melody.extend([0.0] * int(sr * tempo * 0.1))
+        bf = bass_freqs[i] if i < len(bass_freqs) else 130.81
+        bass.extend(_make_bass_note(bf, tempo * 0.9, 0.15, sr))
+        bass.extend([0.0] * int(sr * tempo * 0.1))
+    samples = _mix(melody, bass)
+    path = os.path.join(MUSIC_DIR, "overworld.wav")
+    _write_wav(path, samples, sr)
+    print(f"  Created {path}")
+
+    # --- combat.wav: fast-paced minor key, ~15s loop ---
+    tempo = 0.18
+    combat_melody = [
+        220.00, 261.63, 293.66, 349.23, 329.63, 261.63, 220.00, 196.00,
+        220.00, 293.66, 349.23, 392.00, 349.23, 293.66, 261.63, 220.00,
+        196.00, 220.00, 261.63, 293.66, 349.23, 329.63, 293.66, 261.63,
+        220.00, 261.63, 293.66, 349.23, 392.00, 349.23, 293.66, 220.00,
+        174.61, 196.00, 220.00, 261.63, 293.66, 329.63, 293.66, 261.63,
+        220.00, 196.00, 174.61, 196.00, 220.00, 261.63, 220.00, 196.00,
+        220.00, 261.63, 329.63, 349.23, 329.63, 293.66, 261.63, 220.00,
+        196.00, 220.00, 261.63, 293.66, 261.63, 220.00, 196.00, 220.00,
+        174.61, 196.00, 220.00, 261.63, 293.66, 349.23, 392.00, 349.23,
+        293.66, 261.63, 220.00, 196.00, 174.61, 196.00, 220.00, 220.00,
+    ]
+    combat_bass = []
+    combat_mel = []
+    for i, freq in enumerate(combat_melody):
+        combat_mel.extend(_make_note(freq, tempo * 0.85, 0.3, sr))
+        combat_mel.extend([0.0] * int(sr * tempo * 0.15))
+        bf = freq * 0.5
+        combat_bass.extend(_make_bass_note(bf, tempo * 0.85, 0.2, sr))
+        combat_bass.extend([0.0] * int(sr * tempo * 0.15))
+    # Add rhythmic pulse
+    pulse = []
+    for i in range(len(combat_mel)):
+        t = i / sr
+        beat = int(t / (tempo * 2)) % 2
+        pulse.append(0.08 if beat == 0 else 0.0)
+    noise_pulse = [p * (random.Random(i).random() * 2 - 1) * 0.5 for i, p in enumerate(pulse)]
+    samples = _mix(_mix(combat_mel, combat_bass), noise_pulse)
+    path = os.path.join(MUSIC_DIR, "combat.wav")
+    _write_wav(path, samples, sr)
+    print(f"  Created {path}")
+
+    # --- cave.wav: dark ambient drone + sparse notes, ~20s ---
+    duration = 20.0
+    n = int(sr * duration)
+    # Low drone
+    drone = _make_sine(65.41, duration, 0.15, sr)  # C2
+    drone2 = _make_sine(98.00, duration, 0.08, sr)  # G2
+    drone_mix = _mix(drone, drone2)
+    # Sparse high notes
+    sparse = [0.0] * n
+    rng = random.Random(42)
+    note_times = sorted([rng.uniform(0, duration - 1.0) for _ in range(12)])
+    cave_notes = [196.00, 220.00, 261.63, 293.66, 329.63]
+    for t in note_times:
+        freq = rng.choice(cave_notes)
+        note = _apply_envelope(_make_sine(freq, 0.8, 0.12, sr), attack=0.1, decay=0.4, sample_rate=sr)
+        start = int(t * sr)
+        for j, s in enumerate(note):
+            if start + j < n:
+                sparse[start + j] += s
+    sparse = [max(-1.0, min(1.0, s)) for s in sparse]
+    samples = _mix(drone_mix, sparse)
+    path = os.path.join(MUSIC_DIR, "cave.wav")
+    _write_wav(path, samples, sr)
+    print(f"  Created {path}")
+
+    # --- factory.wav: industrial rhythmic pulse, ~16s ---
+    tempo = 0.25
+    n_beats = 64
+    factory_mel = []
+    factory_rhythm = []
+    rng = random.Random(77)
+    factory_notes = [146.83, 164.81, 174.61, 196.00, 220.00, 246.94]
+    for i in range(n_beats):
+        # Metallic percussion on every beat
+        hit = _make_noise(0.04, volume=0.15)
+        hit = _apply_envelope(hit, attack=0.001, decay=0.03)
+        # Heavier hit on downbeats
+        if i % 4 == 0:
+            heavy = _make_noise(0.06, volume=0.25)
+            heavy = _apply_envelope(heavy, attack=0.001, decay=0.04)
+            hit = _mix(hit, heavy)
+        pad = [0.0] * max(0, int(sr * tempo) - len(hit))
+        factory_rhythm.extend(hit)
+        factory_rhythm.extend(pad)
+        # Melodic note every 2 beats
+        if i % 2 == 0:
+            freq = rng.choice(factory_notes)
+            note = _make_note(freq, tempo * 1.8, 0.2, sr)
+            pad_mel = [0.0] * max(0, int(sr * tempo) - len(note))
+            factory_mel.extend(note)
+            factory_mel.extend(pad_mel)
+        else:
+            factory_mel.extend([0.0] * int(sr * tempo))
+    # Match lengths
+    max_len = max(len(factory_mel), len(factory_rhythm))
+    factory_mel.extend([0.0] * (max_len - len(factory_mel)))
+    factory_rhythm.extend([0.0] * (max_len - len(factory_rhythm)))
+    samples = _mix(factory_mel, factory_rhythm)
+    path = os.path.join(MUSIC_DIR, "factory.wav")
+    _write_wav(path, samples, sr)
+    print(f"  Created {path}")
+
+    # --- reactor.wav: tense electronic, pulsing bass, dissonant, ~18s ---
+    duration = 18.0
+    n = int(sr * duration)
+    # Pulsing bass (alternating low frequencies)
+    bass_pulse = []
+    pulse_period = 0.5  # seconds
+    for i in range(n):
+        t = i / sr
+        cycle = int(t / pulse_period) % 4
+        freqs = [55.0, 58.27, 61.74, 58.27]  # A1, Bb1, B1, Bb1 — dissonant
+        freq = freqs[cycle]
+        vol = 0.2 * (0.5 + 0.5 * math.sin(2 * math.pi * 2 * t))  # tremolo
+        bass_pulse.append(vol * math.sin(2 * math.pi * freq * t))
+    # High dissonant pad
+    pad1 = _make_sine(440.0, duration, 0.06, sr)
+    pad2 = _make_sine(466.16, duration, 0.06, sr)  # Bb4 — tritone-ish
+    high_pad = _mix(pad1, pad2)
+    # Sparse stabs
+    stabs = [0.0] * n
+    rng = random.Random(88)
+    for _ in range(8):
+        t = rng.uniform(0, duration - 0.3)
+        freq = rng.choice([329.63, 349.23, 369.99, 392.00])
+        stab = _apply_envelope(_make_sine(freq, 0.2, 0.2, sr), attack=0.005, decay=0.1, sample_rate=sr)
+        start = int(t * sr)
+        for j, s in enumerate(stab):
+            if start + j < n:
+                stabs[start + j] += s
+    stabs = [max(-1.0, min(1.0, s)) for s in stabs]
+    samples = _mix(_mix(bass_pulse, high_pad), stabs)
+    path = os.path.join(MUSIC_DIR, "reactor.wav")
+    _write_wav(path, samples, sr)
+    print(f"  Created {path}")
+
+    # --- shop.wav: warm peaceful melody, ~16s ---
+    tempo = 0.35
+    shop_melody_freqs = [
+        329.63, 392.00, 440.00, 392.00, 329.63, 293.66, 329.63, 392.00,
+        440.00, 523.25, 493.88, 440.00, 392.00, 329.63, 293.66, 329.63,
+        261.63, 293.66, 329.63, 392.00, 440.00, 392.00, 349.23, 329.63,
+        293.66, 329.63, 392.00, 440.00, 392.00, 349.23, 329.63, 293.66,
+        261.63, 329.63, 392.00, 440.00, 523.25, 493.88, 440.00, 392.00,
+        329.63, 293.66, 261.63, 293.66, 329.63, 261.63,
+    ]
+    shop_mel = []
+    shop_bass = []
+    for freq in shop_melody_freqs:
+        note = _make_note(freq, tempo * 0.85, 0.2, sr)
+        gap = [0.0] * int(sr * tempo * 0.15)
+        shop_mel.extend(note)
+        shop_mel.extend(gap)
+        bn = _make_bass_note(freq * 0.5, tempo * 0.85, 0.1, sr)
+        shop_bass.extend(bn)
+        shop_bass.extend(gap)
+    samples = _mix(shop_mel, shop_bass)
+    path = os.path.join(MUSIC_DIR, "shop.wav")
+    _write_wav(path, samples, sr)
+    print(f"  Created {path}")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -938,6 +1295,12 @@ def main():
 
     print("Tiles:")
     generate_tileset()
+
+    print("SFX:")
+    generate_sfx()
+
+    print("Music:")
+    generate_music()
 
     print("Done! All assets written to assets/")
 

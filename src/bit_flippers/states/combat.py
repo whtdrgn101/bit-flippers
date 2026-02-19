@@ -63,7 +63,7 @@ class CombatState:
             max_hp=combat_max_hp,
             attack=effective_attack(stats, self.equipment),
             defense=effective_defense(stats, self.equipment),
-            sprite=load_player("pipoya-characters/Male/Male 01-1"),
+            sprite=load_player(getattr(overworld, "player_sprite_key", "pipoya-characters/Male/Male 01-1")),
         )
         # Store bonus max_sp/dex for combat calculations
         self._eq_max_sp_bonus = eq_bonuses.get("max_sp", 0)

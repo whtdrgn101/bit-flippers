@@ -3,7 +3,7 @@ import pygame
 from bit_flippers.fonts import get_font
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
-MENU_OPTIONS = ["Resume", "Save Game", "Inventory", "Quest Log", "Character", "Skill Tree", "Quit Game"]
+MENU_OPTIONS = ["Resume", "Save Game", "Inventory", "Quest Log", "Character", "Skill Tree", "Options", "Quit Game"]
 
 
 class PauseMenuState:
@@ -62,6 +62,9 @@ class PauseMenuState:
             self.game.push_state(
                 SkillTreeState(self.game, self.overworld.player_skills, self.overworld.stats, self.overworld)
             )
+        elif option == "Options":
+            from bit_flippers.states.options_menu import OptionsMenuState
+            self.game.push_state(OptionsMenuState(self.game))
         elif option == "Quit Game":
             self.game.running = False
 

@@ -129,6 +129,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         display_name="Tinker's Shop",
         player_start_x=5,
         player_start_y=7,
+        music_track="shop",
         # Entities now live in tinker_shop.tmx object layer
         tmx_file="tinker_shop.tmx",
     ),
@@ -148,7 +149,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         ],
         encounter_table=["Rust Golem", "Rust Golem", "Volt Wraith", "Slag Beetle"],
         encounter_chance=0.05,
-        music_track="overworld",
+        music_track="cave",
         scrap_positions=[
             (7, 2), (17, 2), (2, 6), (12, 6), (8, 10), (17, 10),
         ],
@@ -173,7 +174,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         ],
         encounter_table=["Wire Spider", "Slag Beetle", "Plasma Hound"],
         encounter_chance=0.06,
-        music_track="overworld",
+        music_track="factory",
         scrap_positions=[
             (21, 4), (5, 5), (14, 8), (22, 12), (2, 14),
         ],
@@ -193,7 +194,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         ],
         encounter_table=["Core Leech", "Volt Wraith", "Plasma Hound"],
         encounter_chance=0.07,
-        music_track="overworld",
+        music_track="reactor",
         scrap_positions=[
             (15, 2), (15, 8), (5, 10),
         ],
@@ -217,7 +218,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         ],
         encounter_table=[],
         encounter_chance=0.0,
-        music_track="overworld",
+        music_track="shop",
         tmx_file="volt_forge.tmx",
     ),
     "iron_shell": MapDef(
@@ -238,7 +239,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         ],
         encounter_table=[],
         encounter_chance=0.0,
-        music_track="overworld",
+        music_track="shop",
         tmx_file="iron_shell.tmx",
     ),
 }

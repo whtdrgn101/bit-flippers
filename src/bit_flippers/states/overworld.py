@@ -22,6 +22,7 @@ from bit_flippers.settings import (
     COLOR_MONEY_TEXT,
 )
 from bit_flippers.camera import Camera
+from bit_flippers.minimap import Minimap
 from bit_flippers.sprites import create_placeholder_npc, create_placeholder_enemy, load_player
 from bit_flippers.npc import make_npc
 from bit_flippers.items import Inventory, Equipment, WEAPONSMITH_STOCK, ARMORSMITH_STOCK
@@ -41,8 +42,11 @@ DIRECTION_MAP = {
 }
 
 
+_DEFAULT_SPRITE_KEY = "pipoya-characters/Male/Male 01-1"
+
+
 class OverworldState:
-    def __init__(self, game, save_data=None):
+    def __init__(self, game, save_data=None, sprite_key=None):
         self.game = game
 
         # Pickup notification
@@ -55,7 +59,9 @@ class OverworldState:
         # HUD font
         self.hud_font = get_font(22)
 
-        self.sprite = load_player("pipoya-characters/Male/Male 01-1")
+        # Player sprite key — set before _fresh_start / _restore_from_save
+        self.player_sprite_key = sprite_key or _DEFAULT_SPRITE_KEY
+        self.sprite = load_player(self.player_sprite_key)
         self.move_timer = 0.0
         self.held_direction = None
 
@@ -77,6 +83,13 @@ class OverworldState:
 
         # Quest tracking — enemies defeated this combat session
         self.last_combat_defeated_names: list[str] = []
+
+        # Minimap
+        self.minimap = None
+        self.minimap_visible = True
+
+        # Auto-save indicator
+        self.autosave_indicator_timer = 0.0
 
         if save_data is not None:
             self._restore_from_save(save_data)
@@ -143,6 +156,10 @@ class OverworldState:
         self.player_visual_y = float(self.player_y * TILE_SIZE)
         self.player_facing = save_data.get("player_facing", "down")
         self.steps_since_encounter = save_data.get("steps_since_encounter", 0)
+
+        # Restore sprite key
+        self.player_sprite_key = save_data.get("player_sprite_key", _DEFAULT_SPRITE_KEY)
+        self.sprite = load_player(self.player_sprite_key)
 
         # Map persistence
         self.map_persistence: dict[str, MapPersistence] = {}
@@ -227,6 +244,7 @@ class OverworldState:
         self.scrap_remaining = set(scrap_positions) - persist.collected_scrap
 
         self.camera = Camera(SCREEN_WIDTH, VIEWPORT_HEIGHT)
+        self.minimap = Minimap(self.tiled_renderer, width=100, height=80)
 
         # Set player position — TMX spawn when no explicit coords provided
         if spawn_x is not None:
@@ -318,6 +336,8 @@ class OverworldState:
             elif event.key == pygame.K_q:
                 from bit_flippers.states.quest_log import QuestLogState
                 self.game.push_state(QuestLogState(self.game, self.player_quests))
+            elif event.key == pygame.K_TAB:
+                self.minimap_visible = not self.minimap_visible
         elif event.type == pygame.KEYUP:
             if event.key == self.held_direction:
                 self.held_direction = None
@@ -379,6 +399,7 @@ class OverworldState:
                             _ow.pickup_message = f"Quest complete: {QUEST_REGISTRY[_qid].name}!"
                             _ow.pickup_message_timer = PICKUP_MESSAGE_DURATION
                             save_game(_ow)
+                            _ow.autosave_indicator_timer = 1.5
                             if _ow.stats.level > old_lvl:
                                 from bit_flippers.states.level_up import LevelUpState
                                 _ow.game.push_state(LevelUpState(
@@ -471,6 +492,7 @@ class OverworldState:
 
         # Auto-save after rewards
         save_game(self)
+        self.autosave_indicator_timer = 1.5
 
     def on_combat_victory(self, enemy_data=None):
         """Called by CombatState when the player wins."""
@@ -522,6 +544,14 @@ class OverworldState:
             self.pickup_message_timer -= dt
             if self.pickup_message_timer <= 0:
                 self.pickup_message = ""
+
+        # Auto-save indicator timer
+        if self.autosave_indicator_timer > 0:
+            self.autosave_indicator_timer -= dt
+
+        # Minimap update
+        if self.minimap is not None and self.minimap_visible:
+            self.minimap.update(self.player_x, self.player_y, self._current_doors, dt)
 
         # Handle held-key repeat movement
         if self.held_direction is not None:
@@ -638,6 +668,14 @@ class OverworldState:
             msg_surf = self.hud_font.render(self.pickup_message, True, (255, 220, 100))
             screen.blit(msg_surf, (SCREEN_WIDTH // 2 - msg_surf.get_width() // 2, 50))
 
+        # Auto-save indicator (bottom-right of viewport)
+        if self.autosave_indicator_timer > 0:
+            save_font = get_font(18)
+            alpha = min(255, int(self.autosave_indicator_timer * 255 / 0.5))
+            save_surf = save_font.render("Saving...", True, (200, 200, 200))
+            save_surf.set_alpha(alpha)
+            screen.blit(save_surf, (SCREEN_WIDTH - save_surf.get_width() - 10, VIEWPORT_HEIGHT - 30))
+
         # Remove clip before drawing HUD
         screen.set_clip(None)
 
@@ -725,6 +763,10 @@ class OverworldState:
         if self.player_quests.has_completable():
             quest_label = self.hud_font.render("! Quest ready [Q]", True, (100, 255, 100))
             screen.blit(quest_label, (col_right, y))
+
+        # Minimap in HUD (far right)
+        if self.minimap is not None and self.minimap_visible:
+            self.minimap.draw(screen, SCREEN_WIDTH - self.minimap.width - 6, HUD_Y + (HUD_HEIGHT - self.minimap.height) // 2)
 
         # Vertical dividers between columns
         div_x1 = SCREEN_WIDTH // 3

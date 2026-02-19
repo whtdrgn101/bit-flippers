@@ -1,23 +1,72 @@
 """Full save/load system with 5 save slots."""
 import json
 import os
+import shutil
+import sys
 import time
 from dataclasses import asdict
-
-_SAVE_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir)
-)
 
 _SAVE_VERSION = 2
 _NUM_SLOTS = 5
 
+# Old project-root save dir (for migration)
+_OLD_SAVE_DIR = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir)
+)
+
+_save_dir_cache: str | None = None
+
+
+def _get_save_dir() -> str:
+    """Return platform-appropriate save directory, creating it if needed.
+
+    macOS:   ~/Library/Application Support/BitFlippers/
+    Linux:   ~/.local/share/BitFlippers/
+    Windows: %APPDATA%/BitFlippers/
+    """
+    global _save_dir_cache
+    if _save_dir_cache is not None:
+        return _save_dir_cache
+
+    if sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Application Support")
+    elif sys.platform == "win32":
+        base = os.environ.get("APPDATA", os.path.expanduser("~"))
+    else:
+        base = os.environ.get("XDG_DATA_HOME", os.path.expanduser("~/.local/share"))
+
+    save_dir = os.path.join(base, "BitFlippers")
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Legacy migration: copy old project-root saves to new location
+    _migrate_legacy_saves(save_dir)
+
+    _save_dir_cache = save_dir
+    return save_dir
+
+
+def _migrate_legacy_saves(new_dir: str) -> None:
+    """Move save files from old project-root location to platform dir."""
+    for slot in range(_NUM_SLOTS):
+        old_path = os.path.join(_OLD_SAVE_DIR, f"savegame_{slot}.json")
+        new_path = os.path.join(new_dir, f"savegame_{slot}.json")
+        if os.path.isfile(old_path) and not os.path.isfile(new_path):
+            shutil.copy2(old_path, new_path)
+            os.remove(old_path)
+    # Legacy single savegame.json
+    old_legacy = os.path.join(_OLD_SAVE_DIR, "savegame.json")
+    new_legacy = os.path.join(new_dir, "savegame.json")
+    if os.path.isfile(old_legacy) and not os.path.isfile(new_legacy):
+        shutil.copy2(old_legacy, new_legacy)
+        os.remove(old_legacy)
+
 
 def _slot_path(slot: int) -> str:
-    return os.path.join(_SAVE_DIR, f"savegame_{slot}.json")
+    return os.path.join(_get_save_dir(), f"savegame_{slot}.json")
 
 
 def _legacy_path() -> str:
-    return os.path.join(_SAVE_DIR, "savegame.json")
+    return os.path.join(_get_save_dir(), "savegame.json")
 
 
 def save_game(overworld, slot: int | None = None) -> None:
@@ -45,6 +94,7 @@ def save_game(overworld, slot: int | None = None) -> None:
         "player_y": overworld.player_y,
         "player_facing": overworld.player_facing,
         "steps_since_encounter": overworld.steps_since_encounter,
+        "player_sprite_key": getattr(overworld, "player_sprite_key", "pipoya-characters/Male/Male 01-1"),
         "map_persistence": {},
     }
 
@@ -144,6 +194,34 @@ def delete_save(slot: int | None = None) -> None:
     legacy = _legacy_path()
     if os.path.isfile(legacy):
         os.remove(legacy)
-    legacy_stats = os.path.join(_SAVE_DIR, "player_stats.json")
+    legacy_stats = os.path.join(_get_save_dir(), "player_stats.json")
     if os.path.isfile(legacy_stats):
         os.remove(legacy_stats)
+
+
+# ---------------------------------------------------------------------------
+# Config (volume preferences, etc.)
+# ---------------------------------------------------------------------------
+
+def _config_path() -> str:
+    return os.path.join(_get_save_dir(), "config.json")
+
+
+def load_config() -> dict:
+    """Load config.json from save directory, returning defaults if absent."""
+    path = _config_path()
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return data
+    except (FileNotFoundError, json.JSONDecodeError, TypeError):
+        pass
+    return {}
+
+
+def save_config(config: dict) -> None:
+    """Write config.json to save directory."""
+    path = _config_path()
+    with open(path, "w") as f:
+        json.dump(config, f, indent=2)
