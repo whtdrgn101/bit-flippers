@@ -1,12 +1,5 @@
-"""Player stats, combat formulas, stat allocation, and JSON persistence."""
-import json
-import os
-from dataclasses import dataclass, asdict
-
-_SAVE_DIR = os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir)
-)
-_SAVE_PATH = os.path.join(_SAVE_DIR, "player_stats.json")
+"""Player stats, combat formulas, and stat allocation."""
+from dataclasses import dataclass
 
 
 @dataclass
@@ -60,11 +53,6 @@ def calc_debuff_duration(base_turns: int, constitution: int) -> int:
     return max(1, base_turns - reduction)
 
 
-def calc_skill_multiplier(intelligence: int) -> float:
-    """Skill damage multiplier based on INT. 1.0 at INT=3."""
-    return 1.0 + (intelligence - 3) * 0.05
-
-
 # ---------------------------------------------------------------------------
 # Stat allocation
 # ---------------------------------------------------------------------------
@@ -111,36 +99,3 @@ STAT_DISPLAY_NAMES: dict[str, str] = {
     "constitution": "CON",
     "intelligence": "INT",
 }
-
-
-# ---------------------------------------------------------------------------
-# JSON persistence
-# ---------------------------------------------------------------------------
-
-def save_stats(stats: PlayerStats, player_skills=None, path: str | None = None) -> None:
-    """Save player stats (and optionally skills) to JSON."""
-    p = path or _SAVE_PATH
-    data = asdict(stats)
-    if player_skills is not None:
-        data["skills"] = player_skills.to_dict()
-    with open(p, "w") as f:
-        json.dump(data, f, indent=2)
-
-
-def load_stats(path: str | None = None):
-    """Load player stats and skills from JSON.
-
-    Returns (PlayerStats, PlayerSkills) tuple.  Defaults on error.
-    """
-    from bit_flippers.skills import PlayerSkills
-
-    p = path or _SAVE_PATH
-    try:
-        with open(p, "r") as f:
-            data = json.load(f)
-        skills_data = data.pop("skills", None)
-        stats = PlayerStats(**{k: v for k, v in data.items() if k in PlayerStats.__dataclass_fields__})
-        player_skills = PlayerSkills.from_dict(skills_data) if skills_data else PlayerSkills()
-        return stats, player_skills
-    except (FileNotFoundError, json.JSONDecodeError, TypeError):
-        return PlayerStats(), PlayerSkills()

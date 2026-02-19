@@ -20,7 +20,7 @@ from bit_flippers.settings import (
     COLOR_MONEY_TEXT,
 )
 from bit_flippers.camera import Camera
-from bit_flippers.sprites import create_placeholder_npc, load_player
+from bit_flippers.sprites import create_placeholder_npc, create_placeholder_enemy, load_player
 from bit_flippers.npc import make_npc
 from bit_flippers.items import Inventory, Equipment, WEAPONSMITH_STOCK, ARMORSMITH_STOCK
 from bit_flippers.maps import MAP_REGISTRY, MapPersistence
@@ -266,7 +266,7 @@ class OverworldState:
                 "tile_x": edef.tile_x,
                 "tile_y": edef.tile_y,
                 "enemy_data": ENEMY_TYPES[edef.enemy_type_key],
-                "sprite": create_placeholder_npc(edef.color, facing="down"),
+                "sprite": create_placeholder_enemy(edef.color),
                 "defeated": defeated,
             })
 

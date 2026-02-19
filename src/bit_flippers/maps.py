@@ -1,8 +1,4 @@
-"""Map definitions and registry for multi-map navigation.
-
-# TODO: Next step — move NPCs, doors, enemies, encounters, and spawn points
-# into TMX object layers so level design can be done entirely in Tiled.
-"""
+"""Map definitions and registry for multi-map navigation."""
 from dataclasses import dataclass, field
 
 

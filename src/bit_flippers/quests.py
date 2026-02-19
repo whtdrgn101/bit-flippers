@@ -257,6 +257,11 @@ class PlayerQuests:
         for skill_id in rewards.get("skills", []):
             overworld.player_skills.unlocked.add(skill_id)
 
+        # Consume fetched items from inventory
+        for obj in self.objectives.get(quest_id, []):
+            if obj.obj_type == "fetch":
+                overworld.inventory.remove(obj.target, obj.required)
+
         self.states[quest_id] = "done"
         return True
 

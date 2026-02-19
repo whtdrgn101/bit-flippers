@@ -8,7 +8,7 @@ from bit_flippers.settings import (
 )
 from bit_flippers.combat import create_enemy_combatant, CombatEntity, StatusEffect
 from bit_flippers.items import ITEM_REGISTRY
-from bit_flippers.player_stats import effective_attack, effective_defense, calc_hit_chance
+from bit_flippers.player_stats import effective_attack, effective_defense, calc_hit_chance, calc_debuff_duration
 from bit_flippers.skills import SKILL_DEFS, calc_skill_effect
 
 
@@ -334,6 +334,10 @@ class CombatState:
         """Apply a status effect to 'player' or 'enemy'. Refreshes duration if already present."""
         durations = {"Poison": 3, "Stun": 1, "Burn": 3, "Despondent": 3}
         duration = durations.get(effect_name, 3)
+
+        # Constitution reduces debuff duration when applied to the player
+        if target == "player":
+            duration = calc_debuff_duration(duration, self.player_stats.constitution)
 
         statuses = self.player_statuses if target == "player" else self.enemy_statuses
 
