@@ -1,5 +1,6 @@
 """Quest log UI showing active, complete, and available quests."""
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
@@ -16,10 +17,10 @@ class QuestLogState:
         self.player_quests = player_quests
         self.cursor = 0
 
-        self.font_title = pygame.font.SysFont(None, 36)
-        self.font_quest = pygame.font.SysFont(None, 26)
-        self.font_detail = pygame.font.SysFont(None, 22)
-        self.font_hint = pygame.font.SysFont(None, 20)
+        self.font_title = get_font(36)
+        self.font_quest = get_font(26)
+        self.font_detail = get_font(22)
+        self.font_hint = get_font(20)
 
         self.overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.overlay.fill((10, 10, 20, 220))

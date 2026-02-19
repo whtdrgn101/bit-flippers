@@ -1,4 +1,5 @@
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
@@ -25,8 +26,8 @@ class DialogueState:
         self.padding = 12
 
         # Pre-render fonts
-        self.name_font = pygame.font.SysFont(None, 28)
-        self.text_font = pygame.font.SysFont(None, 24)
+        self.name_font = get_font(28)
+        self.text_font = get_font(24)
 
         # Semi-transparent panel surface
         self.panel_surface = pygame.Surface(

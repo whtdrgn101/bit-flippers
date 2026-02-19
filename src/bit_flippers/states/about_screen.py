@@ -1,5 +1,6 @@
 """About / credits screen loaded from strings.json."""
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 from bit_flippers.strings import load_strings
 
@@ -7,8 +8,8 @@ from bit_flippers.strings import load_strings
 class AboutScreenState:
     def __init__(self, game):
         self.game = game
-        self.font = pygame.font.SysFont(None, 28)
-        self.font_hint = pygame.font.SysFont(None, 22)
+        self.font = get_font(28)
+        self.font_hint = get_font(22)
 
         strings = load_strings()
         self.lines: list[str] = strings.get("about", [])

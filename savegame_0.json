@@ -1,5 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
+  "slot": 0,
+  "timestamp": 1771533467.585421,
   "stats": {
     "max_hp": 30,
     "max_sp": 10,
@@ -9,10 +11,10 @@
     "constitution": 3,
     "intelligence": 3,
     "level": 1,
-    "xp": 18,
-    "money": 12,
+    "xp": 8,
+    "money": 5,
     "unspent_points": 0,
-    "current_hp": 13,
+    "current_hp": 28,
     "current_sp": 10
   },
   "skills": {
@@ -28,39 +30,16 @@
     "accessory": null
   },
   "quests": {
-    "states": {
-      "spare_parts": "active"
-    },
-    "objectives": {
-      "spare_parts": [
-        {
-          "obj_type": "fetch",
-          "target": "Scrap Metal",
-          "required": 5,
-          "current": 0
-        }
-      ]
-    }
+    "states": {},
+    "objectives": {}
   },
   "current_map_id": "overworld",
-  "player_x": 65,
+  "player_x": 50,
   "player_y": 30,
-  "player_facing": "right",
+  "player_facing": "up",
   "steps_since_encounter": 0,
   "map_persistence": {
     "overworld": {
-      "collected_scrap": [],
-      "defeated_enemies": []
-    },
-    "tinker_shop": {
-      "collected_scrap": [],
-      "defeated_enemies": []
-    },
-    "volt_forge": {
-      "collected_scrap": [],
-      "defeated_enemies": []
-    },
-    "iron_shell": {
       "collected_scrap": [],
       "defeated_enemies": []
     }

@@ -2,6 +2,7 @@ import random
 from enum import Enum, auto
 
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE, COLOR_SP_BAR,
     COLOR_STATUS_POISON, COLOR_STATUS_STUN, COLOR_STATUS_BURN, COLOR_STATUS_DESPONDENT,
@@ -10,6 +11,10 @@ from bit_flippers.combat import create_enemy_combatant, CombatEntity, StatusEffe
 from bit_flippers.items import ITEM_REGISTRY
 from bit_flippers.player_stats import effective_attack, effective_defense, calc_hit_chance, calc_debuff_duration
 from bit_flippers.skills import SKILL_DEFS, calc_skill_effect
+from bit_flippers.particles import (
+    spawn_particles, update_particles, draw_particles,
+    get_shake_intensity, shake_offset, SKILL_PARTICLES,
+)
 
 
 class Phase(Enum):
@@ -110,10 +115,15 @@ class CombatState:
         self.message = ""
         self.message_timer = 0.0
 
+        # Particle system
+        self.particles = []
+        self.shake_timer = 0.0
+        self.shake_intensity = 0.0
+
         # Fonts
-        self.font = pygame.font.SysFont(None, 28)
-        self.font_big = pygame.font.SysFont(None, 36)
-        self.font_small = pygame.font.SysFont(None, 22)
+        self.font = get_font(28)
+        self.font_big = get_font(36)
+        self.font_small = get_font(22)
 
         # Layout positions — sprites in upper third, leaving room for 5-item menu
         self.player_pos = (SCREEN_WIDTH // 4 - TILE_SIZE, SCREEN_HEIGHT // 3)
@@ -216,7 +226,10 @@ class CombatState:
             self.phase = Phase.ITEM_SELECT
 
         elif action == "Flee":
-            if random.random() < 0.5:
+            player_dex = self.player_stats.dexterity + self._eq_dex_bonus
+            enemy_dex = self.enemy_data.dexterity
+            flee_chance = max(0.20, min(0.80, 0.40 + (player_dex - enemy_dex) * 0.03))
+            if random.random() < flee_chance:
                 self.phase = Phase.FLED
                 self.message = "Got away safely!"
                 self.message_timer = 0.0
@@ -254,6 +267,8 @@ class CombatState:
         combat_stats = copy(self.player_stats)
         combat_stats.intelligence += self._eq_int_bonus
         value = calc_skill_effect(skill, combat_stats)
+
+        self._spawn_skill_particles(skill_id)
 
         if skill.effect_type == "damage":
             self.enemy.hp = max(0, self.enemy.hp - value)
@@ -318,6 +333,35 @@ class CombatState:
 
         self.phase = Phase.PLAYER_ATTACK
         self.phase_timer = 0.6
+
+    def _spawn_skill_particles(self, skill_id):
+        """Spawn particles for a skill at the appropriate target position."""
+        preset = SKILL_PARTICLES.get(skill_id)
+        if not preset:
+            return
+        target = preset.get("target", "enemy")
+        if target == "enemy":
+            cx = self.enemy_pos[0] + TILE_SIZE // 2
+            cy = self.enemy_pos[1] + TILE_SIZE // 2
+            tp = (self.player_pos[0] + TILE_SIZE // 2, self.player_pos[1] + TILE_SIZE // 2)
+        else:
+            cx = self.player_pos[0] + TILE_SIZE // 2
+            cy = self.player_pos[1] + TILE_SIZE // 2
+            tp = (self.enemy_pos[0] + TILE_SIZE // 2, self.enemy_pos[1] + TILE_SIZE // 2)
+        # For converge (scrap_leech), particles start at enemy and converge on player
+        if preset.get("pattern") == "converge":
+            self.particles.extend(spawn_particles(
+                self.enemy_pos[0] + TILE_SIZE // 2,
+                self.enemy_pos[1] + TILE_SIZE // 2,
+                skill_id,
+                target_pos=(self.player_pos[0] + TILE_SIZE // 2, self.player_pos[1] + TILE_SIZE // 2),
+            ))
+        else:
+            self.particles.extend(spawn_particles(cx, cy, skill_id))
+        shake = get_shake_intensity(skill_id)
+        if shake > 0:
+            self.shake_intensity = shake
+            self.shake_timer = 0.4
 
     def _clear_enemy_debuffs(self):
         """Restore enemy stats from debuffs."""
@@ -514,6 +558,8 @@ class CombatState:
             self.phase_timer = 0.6
 
     def _finish_combat(self):
+        from bit_flippers.states.transition import FadeTransition
+
         # Remove temporary defense buff before syncing
         self.player.defense -= self.defense_buff
         # Remove Burn ATK reduction before syncing
@@ -530,28 +576,40 @@ class CombatState:
         )
         self.overworld.stats.current_sp = self.player_stats.current_sp
 
-        if self.phase == Phase.VICTORY:
-            self.overworld.on_combat_victory(enemy_data=self.enemy_data)
-            self.game.pop_state()
-        elif self.phase == Phase.DEFEAT:
-            # Apply death penalties: lose half scrap, respawn at half HP
-            stats = self.overworld.stats
-            lost_scrap = stats.money // 2
+        phase = self.phase
+        overworld = self.overworld
+        enemy_data = self.enemy_data
+        game = self.game
+        combat_state = self  # capture reference to remove from stack
+
+        if phase == Phase.VICTORY:
+            def _on_fade():
+                overworld.on_combat_victory(enemy_data=enemy_data)
+                if combat_state in game.state_stack:
+                    game.state_stack.remove(combat_state)
+            game.push_state(FadeTransition(game, _on_fade))
+        elif phase == Phase.DEFEAT:
+            # Apply death penalties: lose 30% scrap, respawn at 60% HP
+            stats = overworld.stats
+            lost_scrap = int(stats.money * 0.30)
             stats.money -= lost_scrap
-            stats.current_hp = max(1, stats.max_hp // 2)
+            stats.current_hp = max(1, int(stats.max_hp * 0.60))
             stats.current_sp = stats.max_sp
 
-            self.overworld.on_combat_end()
-            self.game.pop_state()
-
-            from bit_flippers.states.death_screen import DeathScreenState
-            self.game.push_state(DeathScreenState(
-                self.game, self.overworld, lost_scrap,
-            ))
+            def _on_fade():
+                overworld.on_combat_end()
+                if combat_state in game.state_stack:
+                    game.state_stack.remove(combat_state)
+                from bit_flippers.states.death_screen import DeathScreenState
+                game.push_state(DeathScreenState(game, overworld, lost_scrap))
+            game.push_state(FadeTransition(game, _on_fade))
         else:
             # Fled
-            self.overworld.on_combat_end()
-            self.game.pop_state()
+            def _on_fade():
+                overworld.on_combat_end()
+                if combat_state in game.state_stack:
+                    game.state_stack.remove(combat_state)
+            game.push_state(FadeTransition(game, _on_fade))
 
     def update(self, dt):
         # Update sprites
@@ -565,6 +623,11 @@ class CombatState:
             self.damage_text_timer -= dt
         if self.message_timer < 10:
             self.message_timer += dt
+        if self.shake_timer > 0:
+            self.shake_timer -= dt
+
+        # Update particles
+        self.particles = update_particles(self.particles, dt)
 
         # Phase transitions
         if self.phase == Phase.PLAYER_ATTACK:
@@ -593,10 +656,12 @@ class CombatState:
                     self.message_timer = 0.0
                     return
 
-                # SP regen: +1 per turn (cap at combat max_sp including equipment)
+                # SP regen: base 1 + INT bonus per turn
+                intel = self.player_stats.intelligence + self._eq_int_bonus
+                sp_regen = 1 + max(0, (intel - 3) // 3)
                 combat_max_sp = self.player_stats.max_sp + self._eq_max_sp_bonus
                 self.player_stats.current_sp = min(
-                    combat_max_sp, self.player_stats.current_sp + 1
+                    combat_max_sp, self.player_stats.current_sp + sp_regen
                 )
 
                 # Show status tick messages if any
@@ -620,13 +685,19 @@ class CombatState:
         # Dark background (full screen combat replaces overworld visually)
         screen.fill((15, 10, 25))
 
+        # Screen shake offset
+        sx, sy = shake_offset(self.shake_intensity, self.shake_timer)
+
         # Title
         title = self.font_big.render(f"VS  {self.enemy.name}", True, (255, 200, 100))
-        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 20))
+        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2 + sx, 20 + sy))
 
         # Draw combatants (scaled up 2x for visibility)
-        self._draw_combatant(screen, self.player, self.player_pos, "player")
-        self._draw_combatant(screen, self.enemy, self.enemy_pos, "enemy")
+        self._draw_combatant(screen, self.player, (self.player_pos[0] + sx, self.player_pos[1] + sy), "player")
+        self._draw_combatant(screen, self.enemy, (self.enemy_pos[0] + sx, self.enemy_pos[1] + sy), "enemy")
+
+        # Draw particles (after combatants, before UI)
+        draw_particles(screen, self.particles)
 
         # HP bars — positioned well above the sprite (sprite top is pos[1] - 16)
         hp_bar_y = self.player_pos[1] - TILE_SIZE - 16

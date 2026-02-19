@@ -50,6 +50,9 @@ COLOR_QUEST_ACTIVE = (100, 200, 255)
 COLOR_QUEST_COMPLETE = (100, 255, 100)
 COLOR_QUEST_AVAILABLE = (255, 220, 100)
 
+# Scrap bonus item pool
+SCRAP_BONUS_ITEMS = ["Repair Kit", "Voltage Spike", "Iron Plating", "Antidote Kit"]
+
 # Status effects
 COLOR_STATUS_POISON = (120, 200, 60)
 COLOR_STATUS_STUN = (255, 255, 100)

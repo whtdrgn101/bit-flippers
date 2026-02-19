@@ -1,4 +1,5 @@
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
@@ -38,10 +39,10 @@ class ShopState:
         self.message_timer = 0.0
 
         # Fonts
-        self.font_title = pygame.font.SysFont(None, 36)
-        self.font_tab = pygame.font.SysFont(None, 28)
-        self.font_item = pygame.font.SysFont(None, 26)
-        self.font_desc = pygame.font.SysFont(None, 22)
+        self.font_title = get_font(36)
+        self.font_tab = get_font(28)
+        self.font_item = get_font(26)
+        self.font_desc = get_font(22)
 
         # Overlay
         self.overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)

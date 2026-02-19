@@ -1,4 +1,5 @@
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
@@ -27,10 +28,10 @@ class InventoryState:
         self.message = ""
         self.message_timer = 0.0
 
-        self.font_title = pygame.font.SysFont(None, 36)
-        self.font_item = pygame.font.SysFont(None, 26)
-        self.font_desc = pygame.font.SysFont(None, 22)
-        self.font_tag = pygame.font.SysFont(None, 20)
+        self.font_title = get_font(36)
+        self.font_item = get_font(26)
+        self.font_desc = get_font(22)
+        self.font_tag = get_font(20)
 
         self.overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.overlay.fill(COLOR_INVENTORY_BG)

@@ -1,5 +1,6 @@
 """Pause menu with resume, save, sub-screen access, and quit."""
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 
 MENU_OPTIONS = ["Resume", "Save Game", "Inventory", "Quest Log", "Character", "Skill Tree", "Quit Game"]
@@ -11,9 +12,9 @@ class PauseMenuState:
         self.overworld = overworld
         self.cursor = 0
 
-        self.font_title = pygame.font.SysFont(None, 40)
-        self.font_option = pygame.font.SysFont(None, 28)
-        self.font_hint = pygame.font.SysFont(None, 22)
+        self.font_title = get_font(40)
+        self.font_option = get_font(28)
+        self.font_hint = get_font(22)
 
         self.overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.overlay.fill((10, 10, 20, 200))
@@ -35,12 +36,10 @@ class PauseMenuState:
         if option == "Resume":
             self.game.pop_state()
         elif option == "Save Game":
-            from bit_flippers.save import save_game
-            save_game(self.overworld)
-            self.game.pop_state()
-            self.overworld.pickup_message = "Game saved!"
-            from bit_flippers.settings import PICKUP_MESSAGE_DURATION
-            self.overworld.pickup_message_timer = PICKUP_MESSAGE_DURATION
+            from bit_flippers.states.save_menu import SaveMenuState
+            self.game.push_state(SaveMenuState(
+                self.game, mode="save", overworld=self.overworld,
+            ))
         elif option == "Inventory":
             from bit_flippers.states.inventory import InventoryState
             self.game.pop_state()

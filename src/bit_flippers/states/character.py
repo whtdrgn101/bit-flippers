@@ -1,5 +1,6 @@
 """Character screen for viewing and allocating stat points."""
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 from bit_flippers.player_stats import (
     PlayerStats,
@@ -18,9 +19,9 @@ class CharacterScreenState:
         self.overworld = overworld
         self.cursor = 0
 
-        self.font_title = pygame.font.SysFont(None, 36)
-        self.font_stat = pygame.font.SysFont(None, 28)
-        self.font_desc = pygame.font.SysFont(None, 22)
+        self.font_title = get_font(36)
+        self.font_stat = get_font(28)
+        self.font_desc = get_font(22)
 
         self.overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.overlay.fill((15, 15, 25, 220))

@@ -1,5 +1,6 @@
 """Skill tree overlay state for viewing and unlocking skills."""
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 from bit_flippers.skills import SKILL_DEFS, PlayerSkills, _SKILL_LIST
 from bit_flippers.save import save_game
@@ -39,10 +40,10 @@ class SkillTreeState:
         self.skill_order = sorted(_SKILL_LIST, key=lambda s: (s.tree_row, s.tree_col))
         self.cursor = 0
 
-        self.font_title = pygame.font.SysFont(None, 36)
-        self.font_node = pygame.font.SysFont(None, 22)
-        self.font_desc = pygame.font.SysFont(None, 24)
-        self.font_hint = pygame.font.SysFont(None, 22)
+        self.font_title = get_font(36)
+        self.font_node = get_font(22)
+        self.font_desc = get_font(24)
+        self.font_hint = get_font(22)
 
         self.overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.overlay.fill((10, 10, 20, 230))

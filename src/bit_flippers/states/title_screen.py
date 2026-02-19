@@ -1,8 +1,9 @@
 """Title screen with New Game / Continue / About."""
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 from bit_flippers.strings import get_string, load_strings
-from bit_flippers.save import has_save, load_game, delete_save
+from bit_flippers.save import has_save
 
 
 class TitleScreenState:
@@ -11,10 +12,10 @@ class TitleScreenState:
         self.cursor = 0
         self.options = ["New Game", "Continue", "About"]
 
-        self.font_title = pygame.font.SysFont(None, 56)
-        self.font_subtitle = pygame.font.SysFont(None, 28)
-        self.font_option = pygame.font.SysFont(None, 32)
-        self.font_hint = pygame.font.SysFont(None, 22)
+        self.font_title = get_font(56)
+        self.font_subtitle = get_font(28)
+        self.font_option = get_font(32)
+        self.font_hint = get_font(22)
 
         self.title_text = get_string("title_screen.title")
         self.subtitle_text = get_string("title_screen.subtitle")
@@ -32,19 +33,20 @@ class TitleScreenState:
 
     def _select(self, option):
         if option == "New Game":
-            delete_save()
             from bit_flippers.states.overworld import OverworldState
             self.game.state_stack.clear()
             self.game.push_state(OverworldState(self.game))
         elif option == "Continue":
             if not has_save():
                 return
-            save_data = load_game()
-            if save_data is None:
-                return
-            from bit_flippers.states.overworld import OverworldState
-            self.game.state_stack.clear()
-            self.game.push_state(OverworldState(self.game, save_data=save_data))
+            from bit_flippers.states.save_menu import SaveMenuState
+
+            def _on_load(save_data, slot, _game=self.game):
+                from bit_flippers.states.overworld import OverworldState
+                _game.state_stack.clear()
+                _game.push_state(OverworldState(_game, save_data=save_data))
+
+            self.game.push_state(SaveMenuState(self.game, mode="load", on_load=_on_load))
         elif option == "About":
             from bit_flippers.states.about_screen import AboutScreenState
             self.game.push_state(AboutScreenState(self.game))

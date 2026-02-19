@@ -1,6 +1,7 @@
 import random
 
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
@@ -13,6 +14,7 @@ from bit_flippers.settings import (
     PLAYER_MOVE_SPEED,
     MIN_STEPS_BETWEEN_ENCOUNTERS,
     SCRAP_BONUS_ITEM_CHANCE,
+    SCRAP_BONUS_ITEMS,
     PICKUP_MESSAGE_DURATION,
     BASE_XP,
     COLOR_XP_BAR,
@@ -51,7 +53,7 @@ class OverworldState:
         self._current_scripted_enemy = None
 
         # HUD font
-        self.hud_font = pygame.font.SysFont(None, 22)
+        self.hud_font = get_font(22)
 
         self.sprite = load_player("pipoya-characters/Male/Male 01-1")
         self.move_timer = 0.0
@@ -86,6 +88,7 @@ class OverworldState:
         from bit_flippers.skills import PlayerSkills
         from bit_flippers.quests import PlayerQuests
 
+        self.active_save_slot = 0
         self.stats = PlayerStats()
         self.player_skills = PlayerSkills()
         self.inventory = Inventory()
@@ -106,6 +109,8 @@ class OverworldState:
         """Restore full game state from save data dict."""
         from bit_flippers.skills import PlayerSkills
         from bit_flippers.quests import PlayerQuests
+
+        self.active_save_slot = save_data.get("slot", 0)
 
         # Stats
         stats_data = save_data.get("stats", {})
@@ -277,14 +282,17 @@ class OverworldState:
         """Check if the player is standing on a door and transition if so."""
         for door in self._current_doors:
             if door.x == self.player_x and door.y == self.player_y:
-                self._load_map(
-                    door.target_map_id,
-                    spawn_x=door.target_spawn_x,
-                    spawn_y=door.target_spawn_y,
-                    spawn_facing=door.target_facing,
-                )
-                # Update quest visit tracking for the new map
-                self.player_quests.update_visit(door.target_map_id)
+                from bit_flippers.states.transition import FadeTransition
+
+                target_map = door.target_map_id
+                sx, sy = door.target_spawn_x, door.target_spawn_y
+                sf = door.target_facing
+
+                def _do_load(_ow=self, _mid=target_map, _sx=sx, _sy=sy, _sf=sf):
+                    _ow._load_map(_mid, spawn_x=_sx, spawn_y=_sy, spawn_facing=_sf)
+                    _ow.player_quests.update_visit(_mid)
+
+                self.game.push_state(FadeTransition(self.game, _do_load))
                 return
 
     def handle_event(self, event):
@@ -364,10 +372,20 @@ class OverworldState:
                         if lines:
                             dialogue_lines = lines
                         def on_close(_ow=self, _qid=qid):
+                            old_lvl = _ow.stats.level
+                            old_stat = _ow.stats.unspent_points
+                            old_skill = _ow.player_skills.skill_points
                             _ow.player_quests.claim_rewards(_qid, _ow)
                             _ow.pickup_message = f"Quest complete: {QUEST_REGISTRY[_qid].name}!"
                             _ow.pickup_message_timer = PICKUP_MESSAGE_DURATION
                             save_game(_ow)
+                            if _ow.stats.level > old_lvl:
+                                from bit_flippers.states.level_up import LevelUpState
+                                _ow.game.push_state(LevelUpState(
+                                    _ow.game, _ow.stats.level,
+                                    _ow.stats.unspent_points - old_stat,
+                                    _ow.player_skills.skill_points - old_skill,
+                                ))
                     elif qstate == "done":
                         lines = _get_dialogue(qdef.dialogue_done)
                         if lines:
@@ -404,13 +422,18 @@ class OverworldState:
                 return
 
     def _start_scripted_combat(self, enemy_npc):
-        from bit_flippers.states.combat import CombatState
+        from bit_flippers.states.transition import CombatTransition
 
         self._current_scripted_enemy = enemy_npc
-        self.game.audio.stop_music()
-        self.game.push_state(
-            CombatState(self.game, enemy_npc["enemy_data"], self, self.inventory, self.player_skills)
-        )
+
+        def _do_combat(_ow=self, _enpc=enemy_npc):
+            from bit_flippers.states.combat import CombatState
+            _ow.game.audio.stop_music()
+            _ow.game.push_state(
+                CombatState(_ow.game, _enpc["enemy_data"], _ow, _ow.inventory, _ow.player_skills)
+            )
+
+        self.game.push_state(CombatTransition(self.game, _do_combat))
 
     def xp_to_next_level(self):
         """XP required to advance from current level to the next."""
@@ -424,23 +447,27 @@ class OverworldState:
         self.stats.money += enemy_data.money_reward
 
         # Level-up loop (supports multi-level-up from big XP rewards)
-        leveled = False
+        old_level = self.stats.level
+        total_stat_pts = 0
+        total_skill_pts = 0
         while self.stats.xp >= self.xp_to_next_level():
             self.stats.xp -= self.xp_to_next_level()
             self.stats.level += 1
             pts = points_for_level(self.stats.level)
             self.stats.unspent_points += pts
-            # Grant skill points
+            total_stat_pts += pts
             skill_pts = skill_points_for_level(self.stats.level)
             self.player_skills.skill_points += skill_pts
+            total_skill_pts += skill_pts
             # Full heal on level up
             self.stats.current_hp = self.stats.max_hp
             self.stats.current_sp = self.stats.max_sp
-            leveled = True
 
-        if leveled:
-            self.pickup_message = f"Level up! Now level {self.stats.level}!"
-            self.pickup_message_timer = PICKUP_MESSAGE_DURATION
+        if self.stats.level > old_level:
+            from bit_flippers.states.level_up import LevelUpState
+            self.game.push_state(LevelUpState(
+                self.game, self.stats.level, total_stat_pts, total_skill_pts,
+            ))
 
         # Auto-save after rewards
         save_game(self)
@@ -463,14 +490,21 @@ class OverworldState:
 
     def _start_random_combat(self):
         from bit_flippers.combat import ENEMY_TYPES
-        from bit_flippers.states.combat import CombatState
+        from bit_flippers.states.transition import CombatTransition
 
         if not self._current_encounter_table:
             return
         enemy_data = ENEMY_TYPES[random.choice(self._current_encounter_table)]
         self.steps_since_encounter = 0
-        self.game.audio.stop_music()
-        self.game.push_state(CombatState(self.game, enemy_data, self, self.inventory, self.player_skills))
+
+        def _do_combat(_ow=self, _ed=enemy_data):
+            from bit_flippers.states.combat import CombatState
+            _ow.game.audio.stop_music()
+            _ow.game.push_state(
+                CombatState(_ow.game, _ed, _ow, _ow.inventory, _ow.player_skills)
+            )
+
+        self.game.push_state(CombatTransition(self.game, _do_combat))
 
     def _npc_at(self, tx, ty):
         """Check if any NPC (friendly or enemy) occupies the given tile."""
@@ -725,7 +759,7 @@ class OverworldState:
                 msg = "Picked up Scrap Metal!"
                 # 25% chance for a bonus consumable
                 if random.random() < SCRAP_BONUS_ITEM_CHANCE:
-                    bonus = random.choice(["Repair Kit", "Voltage Spike", "Iron Plating"])
+                    bonus = random.choice(SCRAP_BONUS_ITEMS)
                     self.inventory.add(bonus)
                     msg += f" Also found {bonus}!"
                 self.pickup_message = msg

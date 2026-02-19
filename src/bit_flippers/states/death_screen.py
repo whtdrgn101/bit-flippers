@@ -1,5 +1,6 @@
 """Death screen shown after the player is defeated in combat."""
 import pygame
+from bit_flippers.fonts import get_font
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT
 from bit_flippers.save import save_game
 
@@ -10,9 +11,9 @@ class DeathScreenState:
         self.overworld = overworld
         self.lost_scrap = lost_scrap
 
-        self.font_title = pygame.font.SysFont(None, 48)
-        self.font_info = pygame.font.SysFont(None, 28)
-        self.font_prompt = pygame.font.SysFont(None, 24)
+        self.font_title = get_font(48)
+        self.font_info = get_font(28)
+        self.font_prompt = get_font(24)
 
         self.overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.overlay.fill((60, 10, 10, 220))
