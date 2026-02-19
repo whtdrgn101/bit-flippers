@@ -58,7 +58,7 @@ class CombatState:
             max_hp=combat_max_hp,
             attack=effective_attack(stats, self.equipment),
             defense=effective_defense(stats, self.equipment),
-            sprite=load_player(),
+            sprite=load_player("pipoya-characters/Male/Male 01-1"),
         )
         # Store bonus max_sp/dex for combat calculations
         self._eq_max_sp_bonus = eq_bonuses.get("max_sp", 0)
@@ -526,12 +526,8 @@ class CombatState:
         )
         self.overworld.stats.current_sp = self.player_stats.current_sp
 
-        from bit_flippers.maps import MAP_REGISTRY
-
         if self.phase == Phase.VICTORY:
             self.overworld.on_combat_victory(enemy_data=self.enemy_data)
-            map_def = MAP_REGISTRY[self.overworld.current_map_id]
-            self.game.audio.play_music(map_def.music_track)
             self.game.pop_state()
         elif self.phase == Phase.DEFEAT:
             # Apply death penalties: lose half scrap, respawn at half HP
@@ -542,8 +538,6 @@ class CombatState:
             stats.current_sp = stats.max_sp
 
             self.overworld.on_combat_end()
-            map_def = MAP_REGISTRY[self.overworld.current_map_id]
-            self.game.audio.play_music(map_def.music_track)
             self.game.pop_state()
 
             from bit_flippers.states.death_screen import DeathScreenState
@@ -553,8 +547,6 @@ class CombatState:
         else:
             # Fled
             self.overworld.on_combat_end()
-            map_def = MAP_REGISTRY[self.overworld.current_map_id]
-            self.game.audio.play_music(map_def.music_track)
             self.game.pop_state()
 
     def update(self, dt):
@@ -711,16 +703,25 @@ class CombatState:
 
     def _draw_combatant(self, screen, entity, pos, who):
         img = entity.sprite.image
-        # Scale up 2x
-        scaled = pygame.transform.scale(img, (TILE_SIZE * 2, TILE_SIZE * 2))
+        iw, ih = img.get_size()
+        # If the sprite is already large (e.g. Pipoya monster 64x64+), use as-is; otherwise 2x
+        if iw >= TILE_SIZE * 2 or ih >= TILE_SIZE * 2:
+            scaled = img
+        else:
+            scaled = pygame.transform.scale(img, (iw * 2, ih * 2))
+        sw, sh = scaled.get_size()
+
+        # Center the sprite on the position
+        draw_x = pos[0] - sw // 2 + TILE_SIZE // 2
+        draw_y = pos[1] - sh // 2 + TILE_SIZE // 2
 
         # Flash effect on hit
         if self.flash_timer > 0 and self.flash_target == who:
             flash_surf = scaled.copy()
             flash_surf.fill((255, 255, 255, 120), special_flags=pygame.BLEND_RGBA_ADD)
-            screen.blit(flash_surf, (pos[0] - TILE_SIZE // 2, pos[1] - TILE_SIZE // 2))
+            screen.blit(flash_surf, (draw_x, draw_y))
         else:
-            screen.blit(scaled, (pos[0] - TILE_SIZE // 2, pos[1] - TILE_SIZE // 2))
+            screen.blit(scaled, (draw_x, draw_y))
 
     def _draw_hp_bar(self, screen, entity, x, y, width):
         bar_height = 8

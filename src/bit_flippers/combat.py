@@ -34,6 +34,7 @@ class EnemyData:
     money_reward: int = 0
     dexterity: int = 5
     ability: dict | None = None
+    battle_sprite_key: str | None = None
 
 
 ENEMY_TYPES: dict[str, EnemyData] = {
@@ -58,5 +59,5 @@ def create_enemy_combatant(enemy_data: EnemyData) -> CombatEntity:
         max_hp=enemy_data.hp,
         attack=enemy_data.attack,
         defense=enemy_data.defense,
-        sprite=load_enemy(key, enemy_data.color),
+        sprite=load_enemy(key, enemy_data.color, enemy_data.battle_sprite_key),
     )

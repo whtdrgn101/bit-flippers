@@ -10,5 +10,85 @@
     "properties": [
     ],
     "propertyTypes": [
+        {
+            "id": 1,
+            "name": "NPC",
+            "type": "class",
+            "useAs": [
+                "object"
+            ],
+            "members": [
+                { "name": "dialogue_key", "type": "string", "value": "" },
+                { "name": "sprite_key", "type": "string", "value": "" },
+                { "name": "sprite_style", "type": "string", "value": "humanoid" },
+                { "name": "facing", "type": "string", "value": "down" },
+                { "name": "color_r", "type": "int", "value": 180 },
+                { "name": "color_g", "type": "int", "value": 180 },
+                { "name": "color_b", "type": "int", "value": 180 }
+            ]
+        },
+        {
+            "id": 2,
+            "name": "Enemy",
+            "type": "class",
+            "useAs": [
+                "object"
+            ],
+            "members": [
+                { "name": "enemy_type_key", "type": "string", "value": "" },
+                { "name": "color_r", "type": "int", "value": 180 },
+                { "name": "color_g", "type": "int", "value": 180 },
+                { "name": "color_b", "type": "int", "value": 180 }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Door",
+            "type": "class",
+            "useAs": [
+                "object"
+            ],
+            "members": [
+                { "name": "target_map_id", "type": "string", "value": "" },
+                { "name": "target_spawn_x", "type": "int", "value": 0 },
+                { "name": "target_spawn_y", "type": "int", "value": 0 },
+                { "name": "target_facing", "type": "string", "value": "down" }
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Scrap",
+            "type": "class",
+            "useAs": [
+                "object"
+            ],
+            "members": [
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Spawn",
+            "type": "class",
+            "useAs": [
+                "object"
+            ],
+            "members": [
+                { "name": "facing", "type": "string", "value": "down" }
+            ]
+        },
+        {
+            "id": 6,
+            "name": "IconMarker",
+            "type": "class",
+            "useAs": [
+                "object"
+            ],
+            "members": [
+                { "name": "icon_type", "type": "string", "value": "" },
+                { "name": "color_r", "type": "int", "value": 255 },
+                { "name": "color_g", "type": "int", "value": 255 },
+                { "name": "color_b", "type": "int", "value": 255 }
+            ]
+        }
     ]
 }

@@ -53,7 +53,7 @@ class OverworldState:
         # HUD font
         self.hud_font = pygame.font.SysFont(None, 22)
 
-        self.sprite = load_player()
+        self.sprite = load_player("pipoya-characters/Male/Male 01-1")
         self.move_timer = 0.0
         self.held_direction = None
 
@@ -63,6 +63,15 @@ class OverworldState:
         self.tiled_renderer = None
         self.scrap_remaining = set()
         self.camera = None
+
+        # TMX-first resolved map data (set by _load_map)
+        self._current_doors = []
+        self._all_scrap_positions = []
+        self._current_icon_markers = []
+        self._current_encounter_table = []
+        self._current_encounter_chance = 0.0
+        self._current_music_track = "overworld"
+        self._current_display_name = ""
 
         # Quest tracking — enemies defeated this combat session
         self.last_combat_defeated_names: list[str] = []
@@ -156,15 +165,18 @@ class OverworldState:
         if self.current_map_id is None:
             return
         persist = self._get_persistence(self.current_map_id)
-        map_def = MAP_REGISTRY[self.current_map_id]
-        persist.collected_scrap = set(map_def.scrap_positions) - self.scrap_remaining
+        persist.collected_scrap = set(self._all_scrap_positions) - self.scrap_remaining
         # Record defeated enemies
         for enpc in self.enemy_npcs:
             if enpc["defeated"]:
                 persist.defeated_enemies.add(enpc["index"])
 
     def _load_map(self, map_id, spawn_x=None, spawn_y=None, spawn_facing=None):
-        """Load a map from the registry, applying persistence."""
+        """Load a map from the registry, applying persistence.
+
+        TMX-first: if the TMX contains objects of a given type, use those.
+        Otherwise fall back to the MapDef in the registry.
+        """
         # Save current map state before switching
         self._save_current_persistence()
 
@@ -175,15 +187,51 @@ class OverworldState:
         from bit_flippers.tiled_loader import TiledMapRenderer
         self.tiled_renderer = TiledMapRenderer(map_def.tmx_file)
 
+        # --- TMX-first entity resolution ---
+        tmx_npcs = self.tiled_renderer.get_npcs()
+        tmx_enemies = self.tiled_renderer.get_enemies()
+        tmx_doors = self.tiled_renderer.get_doors()
+        tmx_scrap = self.tiled_renderer.get_scrap_positions()
+        tmx_spawn = self.tiled_renderer.get_spawn()
+        tmx_icons = self.tiled_renderer.get_icon_markers()
+        tmx_props = self.tiled_renderer.get_map_properties()
+
+        npc_defs = tmx_npcs if tmx_npcs else map_def.npcs
+        enemy_defs = tmx_enemies if tmx_enemies else map_def.enemies
+        self._current_doors = tmx_doors if tmx_doors else map_def.doors
+        scrap_positions = tmx_scrap if tmx_scrap else list(map_def.scrap_positions)
+        self._all_scrap_positions = scrap_positions
+        self._current_icon_markers = tmx_icons if tmx_icons else map_def.icon_markers
+        self._current_encounter_table = (
+            tmx_props.get("encounter_table", "").split(",")
+            if tmx_props.get("encounter_table")
+            else map_def.encounter_table
+        )
+        # Strip whitespace from encounter table entries
+        self._current_encounter_table = [e.strip() for e in self._current_encounter_table if e.strip()]
+        self._current_encounter_chance = (
+            float(tmx_props["encounter_chance"])
+            if "encounter_chance" in tmx_props
+            else map_def.encounter_chance
+        )
+        self._current_music_track = tmx_props.get("music_track", map_def.music_track)
+        self._current_display_name = tmx_props.get("display_name", map_def.display_name)
+
         # Build the set of scrap positions still available on this map
         persist = self._get_persistence(map_id)
-        self.scrap_remaining = set(map_def.scrap_positions) - persist.collected_scrap
+        self.scrap_remaining = set(scrap_positions) - persist.collected_scrap
 
         self.camera = Camera(SCREEN_WIDTH, VIEWPORT_HEIGHT)
 
-        # Set player position
-        px = spawn_x if spawn_x is not None else map_def.player_start_x
-        py = spawn_y if spawn_y is not None else map_def.player_start_y
+        # Set player position — TMX spawn when no explicit coords provided
+        if spawn_x is not None:
+            px, py = spawn_x, spawn_y
+        elif tmx_spawn is not None:
+            px, py = tmx_spawn[0], tmx_spawn[1]
+            if spawn_facing is None:
+                spawn_facing = tmx_spawn[2]
+        else:
+            px, py = map_def.player_start_x, map_def.player_start_y
         # Spawn validation: if position isn't walkable (e.g. map redesigned), fall back
         if not self.tiled_renderer.is_walkable(px, py):
             px = map_def.player_start_x
@@ -195,9 +243,9 @@ class OverworldState:
         if spawn_facing:
             self.player_facing = spawn_facing
 
-        # Build NPC list from MapDef, resolving dialogue from strings.json
+        # Build NPC list, resolving dialogue from strings.json
         self.npcs = []
-        for npc_def in map_def.npcs:
+        for npc_def in npc_defs:
             dialogue = get_npc_dialogue(npc_def.dialogue_key)
             self.npcs.append(
                 make_npc(
@@ -208,10 +256,10 @@ class OverworldState:
                 )
             )
 
-        # Build enemy NPC list from MapDef
+        # Build enemy NPC list
         from bit_flippers.combat import ENEMY_TYPES
         self.enemy_npcs = []
-        for idx, edef in enumerate(map_def.enemies):
+        for idx, edef in enumerate(enemy_defs):
             defeated = idx in persist.defeated_enemies
             self.enemy_npcs.append({
                 "index": idx,
@@ -223,12 +271,11 @@ class OverworldState:
             })
 
         # Play map music
-        self.game.audio.play_music(map_def.music_track)
+        self.game.audio.play_music(self._current_music_track)
 
     def _handle_door_transition(self):
         """Check if the player is standing on a door and transition if so."""
-        map_def = MAP_REGISTRY[self.current_map_id]
-        for door in map_def.doors:
+        for door in self._current_doors:
             if door.x == self.player_x and door.y == self.player_y:
                 self._load_map(
                     door.target_map_id,
@@ -407,23 +454,20 @@ class OverworldState:
         if self._current_scripted_enemy is not None:
             self._current_scripted_enemy["defeated"] = True
         self._current_scripted_enemy = None
-        map_def = MAP_REGISTRY[self.current_map_id]
-        self.game.audio.play_music(map_def.music_track)
+        self.game.audio.play_music(self._current_music_track)
 
     def on_combat_end(self):
         """Called by CombatState on defeat or flee."""
         self._current_scripted_enemy = None
-        map_def = MAP_REGISTRY[self.current_map_id]
-        self.game.audio.play_music(map_def.music_track)
+        self.game.audio.play_music(self._current_music_track)
 
     def _start_random_combat(self):
         from bit_flippers.combat import ENEMY_TYPES
         from bit_flippers.states.combat import CombatState
 
-        map_def = MAP_REGISTRY[self.current_map_id]
-        if not map_def.encounter_table:
+        if not self._current_encounter_table:
             return
-        enemy_data = ENEMY_TYPES[random.choice(map_def.encounter_table)]
+        enemy_data = ENEMY_TYPES[random.choice(self._current_encounter_table)]
         self.steps_since_encounter = 0
         self.game.audio.stop_music()
         self.game.push_state(CombatState(self.game, enemy_data, self, self.inventory, self.player_skills))
@@ -496,10 +540,9 @@ class OverworldState:
 
     def _draw_icon_markers(self, screen):
         """Draw branding icons on wall tiles adjacent to shop doors."""
-        map_def = MAP_REGISTRY.get(self.current_map_id)
-        if not map_def or not map_def.icon_markers:
+        if not self._current_icon_markers:
             return
-        for marker in map_def.icon_markers:
+        for marker in self._current_icon_markers:
             world_rect = pygame.Rect(
                 marker.x * TILE_SIZE, marker.y * TILE_SIZE, TILE_SIZE, TILE_SIZE
             )
@@ -625,9 +668,8 @@ class OverworldState:
         screen.blit(money_label, (col_mid, y))
         y += 20
 
-        map_def = MAP_REGISTRY.get(self.current_map_id)
-        if map_def:
-            map_label = self.hud_font.render(map_def.display_name, True, (200, 200, 200))
+        if self._current_display_name:
+            map_label = self.hud_font.render(self._current_display_name, True, (200, 200, 200))
             screen.blit(map_label, (col_mid, y))
 
         # --- RIGHT COLUMN: Conditional notifications ---
@@ -668,9 +710,8 @@ class OverworldState:
             self.player_y = new_y
             self.steps_since_encounter += 1
 
-            # Check for door transition (always from MapDef doors list)
-            map_def = MAP_REGISTRY[self.current_map_id]
-            for door in map_def.doors:
+            # Check for door transition
+            for door in self._current_doors:
                 if door.x == new_x and door.y == new_y:
                     self._handle_door_transition()
                     return
@@ -692,9 +733,9 @@ class OverworldState:
 
             # Random encounter check
             if (
-                map_def.encounter_table
+                self._current_encounter_table
                 and self.steps_since_encounter >= MIN_STEPS_BETWEEN_ENCOUNTERS
                 and self.tiled_renderer.is_walkable(new_x, new_y)
-                and random.random() < map_def.encounter_chance
+                and random.random() < self._current_encounter_chance
             ):
                 self._start_random_combat()

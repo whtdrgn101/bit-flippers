@@ -276,8 +276,41 @@ def _try_load_sheet(relative_path, frame_width, frame_height):
         return None
 
 
-def load_player():
-    """Load the player sprite from PNG sheet, falling back to placeholder."""
+def load_pipoya_character(sprite_path, facing="down"):
+    """Load a 96x128 Pipoya RPG Maker character sheet with walk animations.
+
+    Layout: 3 cols x 4 rows, 32x32 frames.
+    Rows: down=0, left=1, right=2, up=3.
+    Cols: walk-left=0, idle=1, walk-right=2.
+    Walk cycle: [left, idle, right, idle] at 0.15s per frame.
+    """
+    sheet = _try_load_sheet(sprite_path, 32, 32)
+    if sheet is None:
+        return None
+
+    pipoya_rows = {"down": 0, "left": 1, "right": 2, "up": 3}
+    animations = {}
+    for direction, row in pipoya_rows.items():
+        left_frame = sheet.get_frame(0, row)
+        idle_frame = sheet.get_frame(1, row)
+        right_frame = sheet.get_frame(2, row)
+        walk_frames = [left_frame, idle_frame, right_frame, idle_frame]
+        animations[f"walk_{direction}"] = (walk_frames, 0.15)
+        animations[f"idle_{direction}"] = ([idle_frame], 0.5)
+
+    return AnimatedSprite(animations, default=f"idle_{facing}")
+
+
+def load_player(sprite_key=None):
+    """Load the player sprite, falling back to PNG sheet then placeholder.
+
+    If *sprite_key* contains '/', treat it as a Pipoya character path under assets/sprites/.
+    """
+    if sprite_key and "/" in sprite_key:
+        sprite = load_pipoya_character(f"sprites/{sprite_key}.png")
+        if sprite is not None:
+            return sprite
+
     sheet = _try_load_sheet("sprites/player.png", TILE_SIZE, TILE_SIZE)
     if sheet is None:
         return create_placeholder_player()
@@ -295,7 +328,15 @@ def load_player():
 
 
 def load_npc(npc_key, body_color, facing="down"):
-    """Load an NPC sprite from PNG sheet, falling back to placeholder."""
+    """Load an NPC sprite from PNG sheet, falling back to placeholder.
+
+    If *npc_key* contains '/', treat it as a Pipoya character path under assets/sprites/.
+    """
+    if npc_key and "/" in npc_key:
+        sprite = load_pipoya_character(f"sprites/{npc_key}.png", facing)
+        if sprite is not None:
+            return sprite
+
     sheet = _try_load_sheet(f"sprites/npc_{npc_key}.png", TILE_SIZE, TILE_SIZE)
     if sheet is None:
         return create_placeholder_npc(body_color, facing)
@@ -310,8 +351,34 @@ def load_npc(npc_key, body_color, facing="down"):
     return AnimatedSprite(animations, default=f"idle_{facing}")
 
 
-def load_enemy(enemy_key, body_color):
-    """Load an enemy sprite from PNG sheet, falling back to placeholder."""
+def load_pipoya_monster(sprite_path, target_size=(64, 64)):
+    """Load a Pipoya monster illustration as a single-frame battle sprite.
+
+    Scales the source image to *target_size*.
+    Returns an AnimatedSprite with a single-frame idle_down, or None.
+    """
+    path = os.path.join(_ASSET_DIR, sprite_path)
+    if not os.path.isfile(path):
+        return None
+    try:
+        surface = pygame.image.load(path).convert_alpha()
+    except pygame.error:
+        return None
+    scaled = pygame.transform.smoothscale(surface, target_size)
+    animations = {"idle_down": ([scaled], 0.5)}
+    return AnimatedSprite(animations, default="idle_down")
+
+
+def load_enemy(enemy_key, body_color, battle_sprite_key=None):
+    """Load an enemy sprite from PNG sheet, falling back to placeholder.
+
+    If *battle_sprite_key* contains '/', treat it as a Pipoya monster path under assets/sprites/.
+    """
+    if battle_sprite_key and "/" in battle_sprite_key:
+        sprite = load_pipoya_monster(f"sprites/{battle_sprite_key}.png")
+        if sprite is not None:
+            return sprite
+
     sheet = _try_load_sheet(f"sprites/enemy_{enemy_key}.png", TILE_SIZE, TILE_SIZE)
     if sheet is None:
         return create_placeholder_enemy(body_color)

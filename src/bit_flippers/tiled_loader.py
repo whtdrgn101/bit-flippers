@@ -1,5 +1,7 @@
 """Loader for Tiled (.tmx) map files using pytmx."""
 
+from __future__ import annotations
+
 import os
 
 import pygame
@@ -7,6 +9,7 @@ import pytmx
 import pytmx.util_pygame
 
 from bit_flippers.settings import TILE_SIZE
+from bit_flippers.maps import NPCDef, EnemyNPCDef, DoorDef, IconMarker
 
 _ASSET_DIR = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "assets")
@@ -114,3 +117,110 @@ class TiledMapRenderer:
     def draw_above(self, screen, camera):
         """Draw tile layers that render above sprites (fringe, canopy)."""
         self._draw_layers(screen, camera, self._above_layers)
+
+    # ------------------------------------------------------------------
+    # Entity parsing — read object layers from the TMX
+    # ------------------------------------------------------------------
+
+    def _obj_prop(self, obj, key, default=None):
+        """Read a custom property from a Tiled object."""
+        props = getattr(obj, "properties", {}) or {}
+        return props.get(key, default)
+
+    def _obj_color(self, obj):
+        """Extract (r, g, b) tuple from color_r/g/b properties."""
+        r = int(self._obj_prop(obj, "color_r", 180))
+        g = int(self._obj_prop(obj, "color_g", 180))
+        b = int(self._obj_prop(obj, "color_b", 180))
+        return (r, g, b)
+
+    def _objects_by_type(self, type_name: str):
+        """Yield all objects across all object groups matching *type_name*."""
+        for obj_group in self.tmx_data.objectgroups:
+            for obj in obj_group:
+                if getattr(obj, "type", None) == type_name:
+                    yield obj
+
+    def get_npcs(self) -> list[NPCDef]:
+        npcs = []
+        for obj in self._objects_by_type("NPC"):
+            tx = int(obj.x) // self.tile_width
+            ty = int(obj.y) // self.tile_height
+            name = getattr(obj, "name", "") or ""
+            dialogue_key = self._obj_prop(obj, "dialogue_key", "")
+            sprite_key = self._obj_prop(obj, "sprite_key", "") or None
+            sprite_style = self._obj_prop(obj, "sprite_style", "humanoid")
+            facing = self._obj_prop(obj, "facing", "down")
+            color = self._obj_color(obj)
+            npcs.append(NPCDef(
+                tile_x=tx, tile_y=ty, name=name,
+                dialogue_key=dialogue_key, color=color,
+                facing=facing, sprite_key=sprite_key,
+                sprite_style=sprite_style,
+            ))
+        return npcs
+
+    def get_enemies(self) -> list[EnemyNPCDef]:
+        enemies = []
+        for obj in self._objects_by_type("Enemy"):
+            tx = int(obj.x) // self.tile_width
+            ty = int(obj.y) // self.tile_height
+            enemy_type_key = self._obj_prop(obj, "enemy_type_key", "")
+            color = self._obj_color(obj)
+            enemies.append(EnemyNPCDef(
+                tile_x=tx, tile_y=ty,
+                enemy_type_key=enemy_type_key, color=color,
+            ))
+        return enemies
+
+    def get_doors(self) -> list[DoorDef]:
+        doors = []
+        for obj in self._objects_by_type("Door"):
+            tx = int(obj.x) // self.tile_width
+            ty = int(obj.y) // self.tile_height
+            target_map_id = self._obj_prop(obj, "target_map_id", "")
+            target_spawn_x = int(self._obj_prop(obj, "target_spawn_x", 0))
+            target_spawn_y = int(self._obj_prop(obj, "target_spawn_y", 0))
+            target_facing = self._obj_prop(obj, "target_facing", "down")
+            doors.append(DoorDef(
+                x=tx, y=ty,
+                target_map_id=target_map_id,
+                target_spawn_x=target_spawn_x,
+                target_spawn_y=target_spawn_y,
+                target_facing=target_facing,
+            ))
+        return doors
+
+    def get_scrap_positions(self) -> list[tuple[int, int]]:
+        positions = []
+        for obj in self._objects_by_type("Scrap"):
+            tx = int(obj.x) // self.tile_width
+            ty = int(obj.y) // self.tile_height
+            positions.append((tx, ty))
+        return positions
+
+    def get_spawn(self) -> tuple[int, int, str] | None:
+        """Return (tile_x, tile_y, facing) for the first Spawn object, or None."""
+        for obj in self._objects_by_type("Spawn"):
+            tx = int(obj.x) // self.tile_width
+            ty = int(obj.y) // self.tile_height
+            facing = self._obj_prop(obj, "facing", "down")
+            return (tx, ty, facing)
+        return None
+
+    def get_icon_markers(self) -> list[IconMarker]:
+        markers = []
+        for obj in self._objects_by_type("IconMarker"):
+            tx = int(obj.x) // self.tile_width
+            ty = int(obj.y) // self.tile_height
+            icon_type = self._obj_prop(obj, "icon_type", "")
+            color = self._obj_color(obj)
+            markers.append(IconMarker(x=tx, y=ty, icon_type=icon_type, color=color))
+        return markers
+
+    def get_map_properties(self) -> dict:
+        """Return map-level custom properties as a dict."""
+        props = {}
+        if hasattr(self.tmx_data, "properties") and self.tmx_data.properties:
+            props.update(self.tmx_data.properties)
+        return props

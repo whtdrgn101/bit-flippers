@@ -133,19 +133,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         display_name="Tinker's Shop",
         player_start_x=5,
         player_start_y=7,
-        npcs=[
-            NPCDef(
-                5, 2, "Shopkeeper", "shopkeeper",
-                color=(180, 120, 60), facing="down", sprite_key="old_tinker",
-            ),
-        ],
-        enemies=[],
-        doors=[
-            DoorDef(5, 8, "overworld", 31, 28, "down"),
-        ],
-        encounter_table=[],
-        encounter_chance=0.0,
-        music_track="overworld",
+        # Entities now live in tinker_shop.tmx object layer
         tmx_file="tinker_shop.tmx",
     ),
     "scrap_cave": MapDef(
