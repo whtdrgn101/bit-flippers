@@ -234,3 +234,5 @@ A SNES-inspired turn-based RPG set in a post-apocalyptic world.
 - Platform-appropriate save location (macOS ~/Library/Application Support/BitFlippers/, Linux ~/.local/share/, Windows %APPDATA%)
 - Legacy save migration from project root to platform directory
 - Config persistence (volume preferences) in config.json alongside saves
+
+*Note: Original Milestone 21 (Dungeon Visual Identity + Music) largely completed by 20b (per-area music, minimap, area name in HUD). Remaining visual identity items folded into new Milestone 21 (New Dungeons + Visual Identity).*
