@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="24" height="18" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="20">
+ <tileset firstgid="1" source="tilesets/basechip.tsx"/>
+ <layer id="1" name="ground" width="24" height="18">
+  <data encoding="csv">
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
+3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3
+</data>
+ </layer>
+ <layer id="2" name="detail" width="24" height="18">
+  <data encoding="csv">
+433,441,441,441,441,441,441,441,441,441,441,441,441,441,441,441,441,441,441,441,441,441,441,433,
+433,0,0,0,0,0,0,0,441,0,0,0,0,0,0,441,0,0,0,0,0,0,0,433,
+433,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,433,
+433,0,0,433,441,0,0,0,0,0,0,0,0,0,0,0,0,0,0,441,433,0,0,433,
+433,0,0,441,0,0,0,0,0,433,0,0,0,0,433,0,0,0,0,0,441,0,0,433,
+433,0,0,0,0,0,0,43,0,441,0,0,0,0,441,0,43,0,0,0,0,0,0,433,
+433,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,433,
+433,441,0,0,0,0,0,0,0,0,0,433,433,0,0,0,0,0,0,0,0,441,0,433,
+433,0,0,0,0,0,0,0,0,0,0,441,441,0,0,0,0,0,0,0,0,0,0,433,
+433,0,0,0,0,433,441,0,0,0,0,0,0,0,0,0,0,441,433,0,0,0,0,433,
+433,0,0,0,0,441,0,0,0,0,0,0,0,0,0,0,0,0,441,0,0,0,0,433,
+433,0,0,0,0,0,0,0,0,0,0,49,0,0,0,0,0,0,0,0,0,0,0,433,
+433,0,0,0,0,0,0,0,0,433,441,0,0,441,433,0,0,0,0,0,0,0,0,433,
+433,0,0,44,0,0,0,0,0,441,0,0,0,0,441,0,0,0,0,0,44,0,0,433,
+433,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,433,
+433,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,433,
+433,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,433,
+441,441,441,441,441,441,441,441,441,441,441,441,611,441,441,441,441,441,441,441,441,441,441,441
+</data>
+ </layer>
+ <layer id="3" name="above" width="24" height="18" visible="0">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="4" name="entities">
+  <object id="1" type="Door" x="384" y="544" width="0" height="0">
+   <properties>
+    <property name="target_map_id" value="overworld"/>
+    <property name="target_spawn_x" type="int" value="72"/>
+    <property name="target_spawn_y" type="int" value="43"/>
+    <property name="target_facing" value="down"/>
+   </properties>
+  </object>
+  <object id="2" type="Spawn" x="384" y="512" width="0" height="0">
+   <properties>
+    <property name="facing" value="up"/>
+   </properties>
+  </object>
+  <object id="3" name="Slag Titan" type="Enemy" x="640" y="96" width="0" height="0">
+   <properties>
+    <property name="enemy_type_key" value="Slag Titan"/>
+    <property name="color_r" type="int" value="180"/>
+    <property name="color_g" type="int" value="80"/>
+    <property name="color_b" type="int" value="30"/>
+   </properties>
+  </object>
+  <object id="4" name="Slag Crawler" type="Enemy" x="192" y="256" width="0" height="0">
+   <properties>
+    <property name="enemy_type_key" value="Slag Crawler"/>
+    <property name="color_r" type="int" value="220"/>
+    <property name="color_g" type="int" value="120"/>
+    <property name="color_b" type="int" value="40"/>
+   </properties>
+  </object>
+  <object id="5" name="Furnace Drone" type="Enemy" x="544" y="384" width="0" height="0">
+   <properties>
+    <property name="enemy_type_key" value="Furnace Drone"/>
+    <property name="color_r" type="int" value="200"/>
+    <property name="color_g" type="int" value="60"/>
+    <property name="color_b" type="int" value="40"/>
+   </properties>
+  </object>
+  <object id="6" type="Event" x="64" y="64" width="0" height="0">
+   <properties>
+    <property name="event_type" value="chest"/>
+    <property name="item" value="Palladium Neural Link"/>
+    <property name="once" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="7" type="Event" x="704" y="64" width="0" height="0">
+   <properties>
+    <property name="event_type" value="chest"/>
+    <property name="item" value="Repair Kit"/>
+    <property name="once" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="8" type="Event" x="64" y="416" width="0" height="0">
+   <properties>
+    <property name="event_type" value="sign"/>
+    <property name="text_key" value="slag_pits_sign_1"/>
+   </properties>
+  </object>
+  <object id="9" type="Event" x="704" y="416" width="0" height="0">
+   <properties>
+    <property name="event_type" value="sign"/>
+    <property name="text_key" value="slag_pits_sign_2"/>
+   </properties>
+  </object>
+  <object id="10" type="Event" x="256" y="160" width="0" height="0">
+   <properties>
+    <property name="event_type" value="damage_zone"/>
+    <property name="damage" type="int" value="4"/>
+    <property name="message" value="Molten slag burns!"/>
+    <property name="once" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="11" type="Event" x="480" y="224" width="0" height="0">
+   <properties>
+    <property name="event_type" value="damage_zone"/>
+    <property name="damage" type="int" value="4"/>
+    <property name="message" value="Molten slag burns!"/>
+    <property name="once" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="12" type="Event" x="320" y="352" width="0" height="0">
+   <properties>
+    <property name="event_type" value="damage_zone"/>
+    <property name="damage" type="int" value="4"/>
+    <property name="message" value="Molten slag burns!"/>
+    <property name="once" type="bool" value="false"/>
+   </properties>
+  </object>
+  <object id="13" type="Event" x="544" y="320" width="0" height="0">
+   <properties>
+    <property name="event_type" value="damage_zone"/>
+    <property name="damage" type="int" value="4"/>
+    <property name="message" value="Molten slag burns!"/>
+    <property name="once" type="bool" value="false"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

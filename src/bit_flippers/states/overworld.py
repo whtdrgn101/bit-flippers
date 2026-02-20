@@ -4,12 +4,7 @@ import pygame
 from bit_flippers.fonts import get_font
 from bit_flippers.settings import (
     SCREEN_WIDTH,
-    SCREEN_HEIGHT,
     VIEWPORT_HEIGHT,
-    HUD_HEIGHT,
-    HUD_Y,
-    COLOR_HUD_BG,
-    COLOR_HUD_BORDER,
     TILE_SIZE,
     PLAYER_MOVE_SPEED,
     MIN_STEPS_BETWEEN_ENCOUNTERS,
@@ -17,9 +12,6 @@ from bit_flippers.settings import (
     SCRAP_BONUS_ITEMS,
     PICKUP_MESSAGE_DURATION,
     BASE_XP,
-    COLOR_XP_BAR,
-    COLOR_SP_BAR,
-    COLOR_MONEY_TEXT,
 )
 from bit_flippers.camera import Camera
 from bit_flippers.minimap import Minimap
@@ -30,6 +22,9 @@ from bit_flippers.maps import MAP_REGISTRY, MapPersistence
 from bit_flippers.player_stats import PlayerStats, points_for_level
 from bit_flippers.save import save_game
 from bit_flippers.strings import get_npc_dialogue
+from bit_flippers.states.overworld_hud import draw_hud, draw_icon_markers
+from bit_flippers.events import EventManager
+from bit_flippers.validation import validate_map
 
 MOVE_COOLDOWN = 0.15  # seconds between steps
 
@@ -71,6 +66,9 @@ class OverworldState:
         self.tiled_renderer = None
         self.scrap_remaining = set()
         self.camera = None
+
+        # Event system
+        self.event_manager = EventManager()
 
         # TMX-first resolved map data (set by _load_map)
         self._current_doors = []
@@ -167,6 +165,7 @@ class OverworldState:
             mp = MapPersistence()
             mp.collected_scrap = {tuple(c) for c in pdata.get("collected_scrap", [])}
             mp.defeated_enemies = set(pdata.get("defeated_enemies", []))
+            mp.triggered_events = {tuple(t) for t in pdata.get("triggered_events", [])}
             self.map_persistence[map_id] = mp
 
         self._load_map(
@@ -192,6 +191,8 @@ class OverworldState:
         for enpc in self.enemy_npcs:
             if enpc["defeated"]:
                 persist.defeated_enemies.add(enpc["index"])
+        # Record triggered events
+        persist.triggered_events = set(self.event_manager.triggered)
 
     def _load_map(self, map_id, spawn_x=None, spawn_y=None, spawn_facing=None):
         """Load a map from the registry, applying persistence.
@@ -293,6 +294,14 @@ class OverworldState:
                 "defeated": defeated,
             })
 
+        # Load tile events and restore triggered state from persistence
+        self.event_manager = EventManager()
+        self.event_manager.load_events(self.tiled_renderer)
+        self.event_manager.restore_triggered(persist.triggered_events)
+
+        # Validate map content references (dev-time safety net)
+        validate_map(map_id, map_def, self.tiled_renderer)
+
         # Play map music
         self.game.audio.play_music(self._current_music_track)
 
@@ -357,6 +366,12 @@ class OverworldState:
 
         target_x = self.player_x + dx
         target_y = self.player_y + dy
+
+        # Check tile events (chests, signs)
+        interact_event = self.event_manager.on_interact(target_x, target_y)
+        if interact_event is not None:
+            self._handle_tile_event(interact_event)
+            return
 
         # Check friendly NPCs
         for npc in self.npcs:
@@ -602,28 +617,6 @@ class OverworldState:
             map_source.height_px,
         )
 
-    def _draw_icon_markers(self, screen):
-        """Draw branding icons on wall tiles adjacent to shop doors."""
-        if not self._current_icon_markers:
-            return
-        for marker in self._current_icon_markers:
-            world_rect = pygame.Rect(
-                marker.x * TILE_SIZE, marker.y * TILE_SIZE, TILE_SIZE, TILE_SIZE
-            )
-            sr = self.camera.apply(world_rect)
-            cx, cy = sr.centerx, sr.centery
-            c = marker.color
-            if marker.icon_type == "sword":
-                # Simple sword: vertical blade + crossguard
-                pygame.draw.line(screen, c, (cx, cy - 7), (cx, cy + 7), 2)
-                pygame.draw.line(screen, c, (cx - 4, cy - 2), (cx + 4, cy - 2), 2)
-                pygame.draw.line(screen, c, (cx - 1, cy + 7), (cx + 1, cy + 7), 2)
-            elif marker.icon_type == "shield":
-                # Simple shield: rounded rect outline
-                shield_rect = pygame.Rect(cx - 5, cy - 6, 10, 12)
-                pygame.draw.rect(screen, c, shield_rect, 2, border_radius=3)
-                pygame.draw.line(screen, c, (cx, cy - 4), (cx, cy + 4), 2)
-
     def draw(self, screen):
         # Clip game world to the viewport area (top 360px)
         viewport_rect = pygame.Rect(0, 0, SCREEN_WIDTH, VIEWPORT_HEIGHT)
@@ -631,7 +624,7 @@ class OverworldState:
 
         # Draw map tiles (below sprites)
         self.tiled_renderer.draw_below(screen, self.camera)
-        self._draw_icon_markers(screen)
+        draw_icon_markers(screen, self._current_icon_markers, self.camera)
 
         # Draw friendly NPCs
         for npc in self.npcs:
@@ -683,96 +676,49 @@ class OverworldState:
         self._draw_hud(screen)
 
     def _draw_hud(self, screen):
-        # Background panel
-        pygame.draw.rect(screen, COLOR_HUD_BG, (0, HUD_Y, SCREEN_WIDTH, HUD_HEIGHT))
-        pygame.draw.line(screen, COLOR_HUD_BORDER, (0, HUD_Y), (SCREEN_WIDTH, HUD_Y), 2)
+        draw_hud(
+            screen, self.stats, self.player_skills, self.player_quests,
+            self.xp_to_next_level(), self._current_display_name,
+            self.minimap, self.minimap_visible, self.hud_font,
+        )
 
-        pad = 10
-        bar_width, bar_height = 120, 12
-        col_left = pad
-        col_mid = SCREEN_WIDTH // 3 + pad
-        col_right = 2 * SCREEN_WIDTH // 3 + pad
+    def _handle_tile_event(self, event):
+        """Handle a triggered tile event (chest, sign, trap, etc.)."""
+        props = event.properties
 
-        # --- LEFT COLUMN: Level + HP/SP/XP bars ---
-        y = HUD_Y + pad
-        level_label = self.hud_font.render(f"Lv {self.stats.level}", True, (255, 255, 255))
-        screen.blit(level_label, (col_left, y))
-        y += 20
+        if event.event_type == "chest":
+            item_name = props.get("item", "Scrap Metal")
+            self.inventory.add(item_name)
+            self.game.audio.play_sfx("pickup")
+            self.pickup_message = f"Found {item_name}!"
+            self.pickup_message_timer = PICKUP_MESSAGE_DURATION
+            if event.once:
+                self.event_manager.mark_triggered(event.x, event.y)
 
-        bar_x = col_left + 28
-        # HP bar
-        hp_ratio = self.stats.current_hp / self.stats.max_hp if self.stats.max_hp > 0 else 0
-        hp_label = self.hud_font.render("HP", True, (255, 255, 255))
-        screen.blit(hp_label, (col_left, y))
-        pygame.draw.rect(screen, (60, 60, 60), (bar_x, y + 2, bar_width, bar_height))
-        hp_color = (80, 200, 80) if hp_ratio > 0.5 else (200, 200, 40) if hp_ratio > 0.25 else (200, 60, 60)
-        pygame.draw.rect(screen, hp_color, (bar_x, y + 2, int(bar_width * hp_ratio), bar_height))
-        pygame.draw.rect(screen, (180, 180, 180), (bar_x, y + 2, bar_width, bar_height), 1)
-        hp_text = self.hud_font.render(f"{self.stats.current_hp}/{self.stats.max_hp}", True, (255, 255, 255))
-        screen.blit(hp_text, (bar_x + bar_width + 6, y + 1))
-        y += 20
+        elif event.event_type == "sign":
+            text_key = props.get("text_key", "")
+            lines = get_npc_dialogue(text_key)
+            if lines:
+                from bit_flippers.states.dialogue import DialogueState
+                self.game.push_state(DialogueState(self.game, "Sign", lines))
+            if event.once:
+                self.event_manager.mark_triggered(event.x, event.y)
 
-        # SP bar
-        sp_ratio = self.stats.current_sp / self.stats.max_sp if self.stats.max_sp > 0 else 0
-        sp_label = self.hud_font.render("SP", True, (255, 255, 255))
-        screen.blit(sp_label, (col_left, y))
-        pygame.draw.rect(screen, (40, 40, 40), (bar_x, y + 2, bar_width, bar_height))
-        pygame.draw.rect(screen, COLOR_SP_BAR, (bar_x, y + 2, int(bar_width * sp_ratio), bar_height))
-        pygame.draw.rect(screen, (140, 140, 140), (bar_x, y + 2, bar_width, bar_height), 1)
-        sp_text = self.hud_font.render(f"{self.stats.current_sp}/{self.stats.max_sp}", True, (255, 255, 255))
-        screen.blit(sp_text, (bar_x + bar_width + 6, y + 1))
-        y += 20
+        elif event.event_type in ("trap", "damage_zone"):
+            damage = int(props.get("damage", 1))
+            self.stats.current_hp = max(1, self.stats.current_hp - damage)
+            msg = props.get("message", f"Took {damage} damage!")
+            self.pickup_message = msg
+            self.pickup_message_timer = PICKUP_MESSAGE_DURATION
+            if event.once:
+                self.event_manager.mark_triggered(event.x, event.y)
 
-        # XP bar
-        xp_label = self.hud_font.render("XP", True, (255, 255, 255))
-        screen.blit(xp_label, (col_left, y))
-        xp_needed = self.xp_to_next_level()
-        xp_ratio = self.stats.xp / xp_needed if xp_needed > 0 else 0
-        pygame.draw.rect(screen, (60, 60, 60), (bar_x, y + 2, bar_width, bar_height))
-        pygame.draw.rect(screen, COLOR_XP_BAR, (bar_x, y + 2, int(bar_width * xp_ratio), bar_height))
-        pygame.draw.rect(screen, (180, 180, 180), (bar_x, y + 2, bar_width, bar_height), 1)
-        xp_text = self.hud_font.render(f"{self.stats.xp}/{xp_needed}", True, (255, 255, 255))
-        screen.blit(xp_text, (bar_x + bar_width + 6, y + 1))
-
-        # --- CENTER COLUMN: Money + map name ---
-        y = HUD_Y + pad
-        money_label = self.hud_font.render(f"Scrap: {self.stats.money}", True, COLOR_MONEY_TEXT)
-        screen.blit(money_label, (col_mid, y))
-        y += 20
-
-        if self._current_display_name:
-            map_label = self.hud_font.render(self._current_display_name, True, (200, 200, 200))
-            screen.blit(map_label, (col_mid, y))
-
-        # --- RIGHT COLUMN: Conditional notifications ---
-        y = HUD_Y + pad
-        if self.stats.unspent_points > 0:
-            pts_label = self.hud_font.render(
-                f"+{self.stats.unspent_points} pts [C]", True, (255, 220, 100)
-            )
-            screen.blit(pts_label, (col_right, y))
-            y += 20
-
-        if self.player_skills.skill_points > 0:
-            skill_label = self.hud_font.render(
-                f"+{self.player_skills.skill_points} skill pts [K]", True, (100, 180, 255)
-            )
-            screen.blit(skill_label, (col_right, y))
-            y += 20
-
-        if self.player_quests.has_completable():
-            quest_label = self.hud_font.render("! Quest ready [Q]", True, (100, 255, 100))
-            screen.blit(quest_label, (col_right, y))
-
-        # Minimap in HUD (far right)
-        if self.minimap is not None and self.minimap_visible:
-            self.minimap.draw(screen, SCREEN_WIDTH - self.minimap.width - 6, HUD_Y + (HUD_HEIGHT - self.minimap.height) // 2)
-
-        # Vertical dividers between columns
-        div_x1 = SCREEN_WIDTH // 3
-        div_x2 = 2 * SCREEN_WIDTH // 3
-        pygame.draw.line(screen, COLOR_HUD_BORDER, (div_x1, HUD_Y + 6), (div_x1, HUD_Y + HUD_HEIGHT - 6), 1)
-        pygame.draw.line(screen, COLOR_HUD_BORDER, (div_x2, HUD_Y + 6), (div_x2, HUD_Y + HUD_HEIGHT - 6), 1)
+        elif event.event_type == "custom":
+            msg = props.get("message", "Something happened...")
+            self.pickup_message = msg
+            self.pickup_message_timer = PICKUP_MESSAGE_DURATION
+            if event.once:
+                self.event_manager.mark_triggered(event.x, event.y)
 
     def _try_move(self, key):
         dx, dy, facing = DIRECTION_MAP[key]
@@ -806,6 +752,11 @@ class OverworldState:
                     msg += f" Also found {bonus}!"
                 self.pickup_message = msg
                 self.pickup_message_timer = PICKUP_MESSAGE_DURATION
+
+            # Step-on events (traps, damage zones)
+            step_event = self.event_manager.on_step(new_x, new_y)
+            if step_event is not None:
+                self._handle_tile_event(step_event)
 
             # Random encounter check
             if (

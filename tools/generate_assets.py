@@ -523,6 +523,253 @@ def generate_enemy_volt_wraith():
     print(f"  Created {path}")
 
 
+def generate_enemy_static_drone():
+    """Floating disc with lightning arcs — Comm Tower enemy."""
+    sheet = pygame.Surface((TILE * 2, TILE), pygame.SRCALPHA)
+    body_color = (80, 160, 220)
+
+    for col in range(2):
+        frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+        bob = -1 if col == 0 else 1
+
+        # Disc body — flattened ellipse
+        for x in range(4, 28):
+            for y in range(12 + bob, 22 + bob):
+                dx = (x - 16) / 12.0
+                dy = (y - (17 + bob)) / 5.0
+                if dx * dx + dy * dy <= 1.0:
+                    frame.set_at((x, y), body_color)
+                    if dy < -0.5:
+                        highlight_px(frame, x, y, body_color, 35)
+                    if dy > 0.5:
+                        shadow_px(frame, x, y, body_color, 25)
+
+        # Central dome on top
+        dome_color = (100, 180, 240)
+        for x in range(10, 22):
+            for y in range(8 + bob, 14 + bob):
+                dx = (x - 16) / 6.0
+                dy = (y - (11 + bob)) / 3.0
+                if dx * dx + dy * dy <= 1.0:
+                    if 0 <= y < TILE:
+                        frame.set_at((x, y), dome_color)
+
+        # Glowing eye slit
+        for x in range(12, 20):
+            ey = 15 + bob
+            if 0 <= ey < TILE:
+                frame.set_at((x, ey), (200, 230, 255))
+
+        # Lightning arcs extending from sides
+        arc_color = (180, 220, 255)
+        rng = random.Random(50 + col)
+        for side in [-1, 1]:
+            ax = 16 + side * 12
+            ay = 15 + bob
+            for step in range(6):
+                ax += side
+                ay += rng.choice([-1, 0, 1])
+                ax = max(0, min(TILE - 1, ax))
+                ay = max(0, min(TILE - 1, ay))
+                frame.set_at((ax, ay), arc_color)
+
+        frame = dark_outline(frame)
+        sheet.blit(frame, (col * TILE, 0))
+
+    path = os.path.join(SPRITES_DIR, "enemy_static_drone.png")
+    pygame.image.save(sheet, path)
+    print(f"  Created {path}")
+
+
+def generate_enemy_slag_crawler():
+    """Amorphous blob with drips — Slag Pits enemy."""
+    sheet = pygame.Surface((TILE * 2, TILE), pygame.SRCALPHA)
+    body_color = (220, 120, 40)
+
+    for col in range(2):
+        frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+        bob = -1 if col == 0 else 1
+
+        # Amorphous blob body
+        rng = random.Random(60 + col)
+        for x in range(5, 27):
+            for y in range(10 + bob, 26 + bob):
+                dx = (x - 16) / 11.0
+                dy = (y - (18 + bob)) / 8.0
+                wobble = rng.uniform(-0.1, 0.1)
+                if dx * dx + dy * dy + wobble <= 1.0:
+                    if 0 <= y < TILE:
+                        frame.set_at((x, y), body_color)
+                        if dy < -0.4:
+                            highlight_px(frame, x, y, body_color, 30)
+
+        # Glowing molten spots
+        glow_color = (255, 180, 60)
+        spots = [(10, 16), (20, 18), (14, 22), (18, 14)]
+        for sx, sy in spots:
+            sy += bob
+            for dx in range(-1, 2):
+                for dy in range(-1, 2):
+                    px, py = sx + dx, sy + dy
+                    if 0 <= px < TILE and 0 <= py < TILE:
+                        frame.set_at((px, py), glow_color)
+
+        # Dripping tendrils below
+        drip_color = (200, 100, 30)
+        for tx in [10, 16, 22]:
+            for ty in range(26 + bob, 30 + bob):
+                if 0 <= ty < TILE:
+                    frame.set_at((tx, ty), drip_color)
+                    frame.set_at((tx + (col * 2 - 1), ty), drip_color)
+
+        # Eyes (small, menacing)
+        frame.set_at((12, 14 + bob), (255, 255, 200))
+        frame.set_at((20, 14 + bob), (255, 255, 200))
+
+        frame = dark_outline(frame)
+        sheet.blit(frame, (col * TILE, 0))
+
+    path = os.path.join(SPRITES_DIR, "enemy_slag_crawler.png")
+    pygame.image.save(sheet, path)
+    print(f"  Created {path}")
+
+
+def generate_enemy_cipher_phantom():
+    """Ethereal figure with data-stream lines — Data Vault enemy."""
+    sheet = pygame.Surface((TILE * 2, TILE), pygame.SRCALPHA)
+    body_color = (160, 80, 220)
+
+    for col in range(2):
+        frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+        bob = -1 if col == 0 else 1
+
+        # Hooded head shape
+        head_color = (140, 60, 200)
+        for x in range(10, 22):
+            for y in range(4 + bob, 14 + bob):
+                dx = (x - 16) / 6.0
+                dy = (y - (9 + bob)) / 5.0
+                if dx * dx + dy * dy <= 1.0:
+                    if 0 <= y < TILE:
+                        frame.set_at((x, y), head_color)
+
+        # Flowing robe body — widens toward bottom
+        for y in range(14 + bob, 28 + bob):
+            if not (0 <= y < TILE):
+                continue
+            progress = (y - 14 - bob) / 14.0
+            half_w = int(5 + progress * 7)
+            for x in range(16 - half_w, 16 + half_w):
+                if 0 <= x < TILE:
+                    alpha = max(120, 255 - int(progress * 80))
+                    frame.set_at((x, y), (*body_color, alpha))
+
+        # Glowing eyes
+        ey = 10 + bob
+        if 0 <= ey < TILE:
+            for dx in range(-1, 2):
+                frame.set_at((13 + dx, ey), (200, 160, 255))
+                frame.set_at((19 + dx, ey), (200, 160, 255))
+            frame.set_at((13, ey), (255, 220, 255))
+            frame.set_at((19, ey), (255, 220, 255))
+
+        # Data stream lines — vertical scrolling glyphs
+        data_color = (180, 140, 255)
+        rng = random.Random(70 + col)
+        for _ in range(4):
+            dx = rng.randint(8, 24)
+            dy_start = rng.randint(16 + bob, 24 + bob)
+            for step in range(4):
+                dy = dy_start + step
+                if 0 <= dx < TILE and 0 <= dy < TILE:
+                    frame.set_at((dx, dy), data_color)
+
+        # Wispy bottom
+        for t in range(5):
+            tx = 8 + t * 4 + (col * 2 - 1)
+            for ty in range(28 + bob, 31 + bob):
+                if 0 <= tx < TILE and 0 <= ty < TILE:
+                    frame.set_at((tx, ty), (*body_color, 100))
+
+        frame = dark_outline(frame)
+        sheet.blit(frame, (col * TILE, 0))
+
+    path = os.path.join(SPRITES_DIR, "enemy_cipher_phantom.png")
+    pygame.image.save(sheet, path)
+    print(f"  Created {path}")
+
+
+def generate_enemy_archive_core():
+    """Geometric orb with glowing center — Data Vault boss."""
+    sheet = pygame.Surface((TILE * 2, TILE), pygame.SRCALPHA)
+    body_color = (180, 40, 255)
+
+    for col in range(2):
+        frame = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
+        bob = -1 if col == 0 else 1
+
+        cx, cy = 16, 16 + bob
+
+        # Outer geometric octagon shell
+        shell_color = (140, 30, 200)
+        radius = 12
+        for x in range(cx - radius, cx + radius + 1):
+            for y in range(cy - radius, cy + radius + 1):
+                dx, dy = abs(x - cx), abs(y - cy)
+                # Octagonal distance
+                dist = max(dx, dy) + min(dx, dy) * 0.4
+                if dist <= radius and dist > radius - 3:
+                    if 0 <= x < TILE and 0 <= y < TILE:
+                        frame.set_at((x, y), shell_color)
+                        if dy < dx:
+                            highlight_px(frame, x, y, shell_color, 25)
+
+        # Inner fill
+        for x in range(cx - radius + 3, cx + radius - 2):
+            for y in range(cy - radius + 3, cy + radius - 2):
+                dx, dy = abs(x - cx), abs(y - cy)
+                dist = max(dx, dy) + min(dx, dy) * 0.4
+                if dist <= radius - 3:
+                    if 0 <= x < TILE and 0 <= y < TILE:
+                        frame.set_at((x, y), body_color)
+
+        # Glowing core center
+        core_color = (255, 200, 255)
+        inner_color = (255, 255, 255)
+        for x in range(cx - 4, cx + 5):
+            for y in range(cy - 4, cy + 5):
+                dx, dy = x - cx, y - cy
+                dist_sq = dx * dx + dy * dy
+                if dist_sq <= 16:
+                    if 0 <= x < TILE and 0 <= y < TILE:
+                        frame.set_at((x, y), core_color)
+                if dist_sq <= 4:
+                    if 0 <= x < TILE and 0 <= y < TILE:
+                        frame.set_at((x, y), inner_color)
+
+        # Rotating energy lines (cross pattern)
+        line_color = (220, 140, 255)
+        offset = col * 2
+        for d in range(-radius + 2, radius - 1):
+            px1, py1 = cx + d, cy + offset
+            px2, py2 = cx + offset, cy + d
+            if 0 <= px1 < TILE and 0 <= py1 < TILE:
+                r, g, b, a = frame.get_at((px1, py1))
+                if a > 0:
+                    frame.set_at((px1, py1), line_color)
+            if 0 <= px2 < TILE and 0 <= py2 < TILE:
+                r, g, b, a = frame.get_at((px2, py2))
+                if a > 0:
+                    frame.set_at((px2, py2), line_color)
+
+        frame = dark_outline(frame)
+        sheet.blit(frame, (col * TILE, 0))
+
+    path = os.path.join(SPRITES_DIR, "enemy_archive_core.png")
+    pygame.image.save(sheet, path)
+    print(f"  Created {path}")
+
+
 # ---------------------------------------------------------------------------
 # Tileset: 3 cols x 1 row (96x32)
 # Col 0: DIRT (noise), Col 1: WALL (brick), Col 2: SCRAP (metallic)
@@ -1274,6 +1521,120 @@ def generate_music():
     _write_wav(path, samples, sr)
     print(f"  Created {path}")
 
+    # --- comm_tower.wav: pulsing electronic + static bursts, E minor, ~16s ---
+    tempo = 0.25
+    # E minor: E4=329.63, F#4=369.99, G4=392.00, A4=440.00, B4=493.88, C5=523.25, D5=587.33
+    ct_melody_freqs = [
+        329.63, 392.00, 440.00, 493.88, 440.00, 392.00, 329.63, 369.99,
+        329.63, 440.00, 523.25, 493.88, 440.00, 392.00, 369.99, 329.63,
+        392.00, 440.00, 493.88, 587.33, 523.25, 493.88, 440.00, 392.00,
+        329.63, 369.99, 392.00, 440.00, 392.00, 369.99, 329.63, 329.63,
+        440.00, 493.88, 523.25, 587.33, 523.25, 440.00, 392.00, 329.63,
+        369.99, 392.00, 440.00, 493.88, 440.00, 392.00, 369.99, 329.63,
+        329.63, 392.00, 493.88, 523.25, 493.88, 440.00, 392.00, 329.63,
+        369.99, 329.63, 392.00, 329.63, 293.66, 329.63, 369.99, 329.63,
+    ]
+    ct_mel = []
+    ct_bass = []
+    for freq in ct_melody_freqs:
+        ct_mel.extend(_make_note(freq, tempo * 0.85, 0.25, sr))
+        ct_mel.extend([0.0] * int(sr * tempo * 0.15))
+        ct_bass.extend(_make_bass_note(freq * 0.5, tempo * 0.85, 0.15, sr))
+        ct_bass.extend([0.0] * int(sr * tempo * 0.15))
+    # Static burst overlay
+    ct_static = []
+    rng_ct = random.Random(55)
+    total_len = len(ct_mel)
+    ct_static = [0.0] * total_len
+    for _ in range(6):
+        t = rng_ct.uniform(0, total_len / sr - 0.1)
+        burst = _make_noise(0.08, volume=0.12)
+        burst = _apply_envelope(burst, attack=0.005, decay=0.06)
+        start = int(t * sr)
+        for j, s in enumerate(burst):
+            if start + j < total_len:
+                ct_static[start + j] += s
+    ct_static = [max(-1.0, min(1.0, s)) for s in ct_static]
+    samples = _mix(_mix(ct_mel, ct_bass), ct_static)
+    path = os.path.join(MUSIC_DIR, "comm_tower.wav")
+    _write_wav(path, samples, sr)
+    print(f"  Created {path}")
+
+    # --- slag_pits.wav: heavy industrial drone + metallic percussion, C minor, ~18s ---
+    tempo = 0.35
+    # C minor: C3=130.81, D3=146.83, Eb3=155.56, F3=174.61, G3=196.00, Ab3=207.65, Bb3=233.08
+    sp_melody_freqs = [
+        130.81, 155.56, 174.61, 196.00, 174.61, 155.56, 130.81, 146.83,
+        130.81, 174.61, 207.65, 196.00, 174.61, 155.56, 146.83, 130.81,
+        155.56, 174.61, 196.00, 233.08, 207.65, 196.00, 174.61, 155.56,
+        130.81, 146.83, 155.56, 174.61, 155.56, 146.83, 130.81, 130.81,
+        174.61, 196.00, 207.65, 233.08, 207.65, 174.61, 155.56, 130.81,
+        146.83, 155.56, 174.61, 196.00, 174.61, 155.56, 146.83, 130.81,
+        130.81, 155.56, 196.00, 207.65, 196.00, 174.61, 155.56, 130.81,
+    ]
+    sp_mel = []
+    sp_bass = []
+    for freq in sp_melody_freqs:
+        sp_mel.extend(_make_note(freq, tempo * 0.85, 0.2, sr))
+        sp_mel.extend([0.0] * int(sr * tempo * 0.15))
+        sp_bass.extend(_make_bass_note(freq * 0.5, tempo * 0.85, 0.2, sr))
+        sp_bass.extend([0.0] * int(sr * tempo * 0.15))
+    # Metallic percussion on every beat
+    sp_rhythm = []
+    for i in range(len(sp_melody_freqs)):
+        hit = _make_noise(0.06, volume=0.18)
+        hit = _apply_envelope(hit, attack=0.001, decay=0.04)
+        if i % 4 == 0:
+            heavy = _make_noise(0.08, volume=0.25)
+            heavy = _apply_envelope(heavy, attack=0.001, decay=0.05)
+            hit = _mix(hit, heavy)
+        pad = [0.0] * max(0, int(sr * tempo) - len(hit))
+        sp_rhythm.extend(hit)
+        sp_rhythm.extend(pad)
+    max_len = max(len(sp_mel), len(sp_rhythm))
+    sp_mel.extend([0.0] * (max_len - len(sp_mel)))
+    sp_rhythm.extend([0.0] * (max_len - len(sp_rhythm)))
+    samples = _mix(_mix(sp_mel, sp_bass), sp_rhythm)
+    path = os.path.join(MUSIC_DIR, "slag_pits.wav")
+    _write_wav(path, samples, sr)
+    print(f"  Created {path}")
+
+    # --- data_vault.wav: clean fast arpeggios, sterile digital, A minor, ~15s ---
+    tempo = 0.15
+    # A minor arpeggios: A4=440, C5=523.25, E5=659.25, A5=880, then inversions
+    dv_melody_freqs = [
+        440.00, 523.25, 659.25, 880.00, 659.25, 523.25, 440.00, 392.00,
+        440.00, 523.25, 659.25, 783.99, 659.25, 523.25, 440.00, 392.00,
+        329.63, 440.00, 523.25, 659.25, 523.25, 440.00, 329.63, 293.66,
+        329.63, 392.00, 440.00, 523.25, 659.25, 523.25, 440.00, 392.00,
+        440.00, 523.25, 659.25, 880.00, 783.99, 659.25, 523.25, 440.00,
+        392.00, 440.00, 523.25, 659.25, 523.25, 440.00, 392.00, 329.63,
+        293.66, 329.63, 392.00, 440.00, 523.25, 659.25, 880.00, 659.25,
+        523.25, 440.00, 392.00, 329.63, 293.66, 329.63, 392.00, 440.00,
+        440.00, 523.25, 659.25, 783.99, 880.00, 783.99, 659.25, 523.25,
+        440.00, 392.00, 329.63, 392.00, 440.00, 523.25, 440.00, 392.00,
+        329.63, 293.66, 329.63, 392.00, 440.00, 523.25, 659.25, 523.25,
+        440.00, 392.00, 329.63, 293.66, 329.63, 392.00, 440.00, 440.00,
+    ]
+    dv_mel = []
+    dv_bass = []
+    for i, freq in enumerate(dv_melody_freqs):
+        dv_mel.extend(_make_note(freq, tempo * 0.8, 0.22, sr))
+        dv_mel.extend([0.0] * int(sr * tempo * 0.2))
+        # Bass on every 4th note
+        if i % 4 == 0:
+            dv_bass.extend(_make_bass_note(freq * 0.25, tempo * 3.5, 0.12, sr))
+            bass_pad = max(0, int(sr * tempo) - len(dv_bass) % int(sr * tempo) if len(dv_bass) % int(sr * tempo) != 0 else 0)
+        else:
+            dv_bass.extend([0.0] * int(sr * tempo))
+    max_len = max(len(dv_mel), len(dv_bass))
+    dv_mel.extend([0.0] * (max_len - len(dv_mel)))
+    dv_bass.extend([0.0] * (max_len - len(dv_bass)))
+    samples = _mix(dv_mel, dv_bass)
+    path = os.path.join(MUSIC_DIR, "data_vault.wav")
+    _write_wav(path, samples, sr)
+    print(f"  Created {path}")
+
 
 # ---------------------------------------------------------------------------
 # Main
@@ -1292,6 +1653,10 @@ def main():
     generate_enemy_scrap_rat()
     generate_enemy_rust_golem()
     generate_enemy_volt_wraith()
+    generate_enemy_static_drone()
+    generate_enemy_slag_crawler()
+    generate_enemy_cipher_phantom()
+    generate_enemy_archive_core()
 
     print("Tiles:")
     generate_tileset()

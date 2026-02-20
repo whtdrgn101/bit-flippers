@@ -126,6 +126,25 @@ ITEM_REGISTRY: dict[str, Item] = {
         item_type="equipment", slot="accessory",
         stat_bonuses={"intelligence": 3, "max_sp": 5}, price=260,
     ),
+    # --- Chromium tier (chest/drop only) ---
+    "Chromium Ion Blade": Item(
+        name="Chromium Ion Blade",
+        description="Ion-forged blade. ATK +15.",
+        item_type="equipment", slot="weapon",
+        stat_bonuses={"strength": 15}, price=500,
+    ),
+    "Chromium Exo Armor": Item(
+        name="Chromium Exo Armor",
+        description="Exoskeletal plating. DEF +15.",
+        item_type="equipment", slot="armor",
+        stat_bonuses={"resilience": 15}, price=500,
+    ),
+    "Chromium Sync Module": Item(
+        name="Chromium Sync Module",
+        description="Neural sync device. DEX +3, INT +3, Max SP +5.",
+        item_type="equipment", slot="accessory",
+        stat_bonuses={"dexterity": 3, "intelligence": 3, "max_sp": 5}, price=450,
+    ),
 }
 
 # Items available in the default shop (unlimited stock)

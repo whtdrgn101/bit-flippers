@@ -139,6 +139,37 @@
     "quest_factory_sweep_done": [
       "The assembly lines are running again thanks to you.",
       "If I forge anything new, you'll be the first to know."
+    ],
+
+    "comm_tower_sign_1": [
+      "WARNING: High-voltage relay corridors ahead.",
+      "Static discharge has been reported in all sectors.",
+      "Proceed with extreme caution."
+    ],
+    "comm_tower_sign_2": [
+      "Comm Tower — Sector 7 Relay Hub.",
+      "This facility once broadcast signals across the wasteland.",
+      "Now only the drones remain, endlessly repeating their last orders."
+    ],
+    "slag_pits_sign_1": [
+      "DANGER: Molten slag flows detected.",
+      "Protective gear required beyond this point.",
+      "Thermal vents may activate without warning."
+    ],
+    "slag_pits_sign_2": [
+      "Slag Processing Facility — Sub-Level B.",
+      "The furnaces here never stopped running after the collapse.",
+      "Something keeps feeding them from below."
+    ],
+    "data_vault_sign_1": [
+      "RESTRICTED: Security Clearance Omega required.",
+      "Unauthorized access will trigger countermeasures.",
+      "All data within is classified."
+    ],
+    "data_vault_sign_2": [
+      "Central Data Archive — Core Storage.",
+      "The last backup of the old world's knowledge rests here.",
+      "The Archive Core guards it with lethal precision."
     ]
   }
 }

@@ -67,6 +67,7 @@ class MapPersistence:
     """Per-map mutable state that persists across visits."""
     collected_scrap: set[tuple] = field(default_factory=set)
     defeated_enemies: set[int] = field(default_factory=set)
+    triggered_events: set[tuple] = field(default_factory=set)
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +110,8 @@ MAP_REGISTRY: dict[str, MapDef] = {
             DoorDef(68, 32, "scrap_factory", 12, 15, "up"),
             DoorDef(40, 27, "volt_forge", 5, 6, "up"),
             DoorDef(46, 29, "iron_shell", 5, 6, "up"),
+            DoorDef(25, 15, "comm_tower", 11, 16, "up"),
+            DoorDef(72, 42, "slag_pits", 12, 16, "up"),
         ],
         encounter_table=["Scrap Rat", "Scrap Rat", "Wire Spider", "Rust Golem"],
         encounter_chance=0.05,
@@ -191,6 +194,7 @@ MAP_REGISTRY: dict[str, MapDef] = {
         ],
         doors=[
             DoorDef(1, 12, "scrap_cave", 18, 3, "down"),
+            DoorDef(16, 2, "data_vault", 1, 14, "up"),
         ],
         encounter_table=["Core Leech", "Volt Wraith", "Plasma Hound"],
         encounter_chance=0.07,
@@ -241,5 +245,44 @@ MAP_REGISTRY: dict[str, MapDef] = {
         encounter_chance=0.0,
         music_track="shop",
         tmx_file="iron_shell.tmx",
+    ),
+    "comm_tower": MapDef(
+        map_id="comm_tower",
+        display_name="Comm Tower",
+        player_start_x=11,
+        player_start_y=16,
+        npcs=[],
+        enemies=[],
+        doors=[],
+        encounter_table=["Static Drone", "Static Drone", "Signal Screamer", "Relay Crawler"],
+        encounter_chance=0.06,
+        music_track="comm_tower",
+        tmx_file="comm_tower.tmx",
+    ),
+    "slag_pits": MapDef(
+        map_id="slag_pits",
+        display_name="Slag Pits",
+        player_start_x=12,
+        player_start_y=16,
+        npcs=[],
+        enemies=[],
+        doors=[],
+        encounter_table=["Slag Crawler", "Slag Crawler", "Toxin Feeder", "Furnace Drone"],
+        encounter_chance=0.07,
+        music_track="slag_pits",
+        tmx_file="slag_pits.tmx",
+    ),
+    "data_vault": MapDef(
+        map_id="data_vault",
+        display_name="Data Vault",
+        player_start_x=1,
+        player_start_y=14,
+        npcs=[],
+        enemies=[],
+        doors=[],
+        encounter_table=["Cipher Phantom", "Cipher Phantom", "Firewall Sentinel", "Bit Corruptor"],
+        encounter_chance=0.08,
+        music_track="data_vault",
+        tmx_file="data_vault.tmx",
     ),
 }

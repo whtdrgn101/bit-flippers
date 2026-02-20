@@ -102,6 +102,7 @@ def save_game(overworld, slot: int | None = None) -> None:
         data["map_persistence"][map_id] = {
             "collected_scrap": sorted([list(t) for t in persist.collected_scrap]),
             "defeated_enemies": sorted(persist.defeated_enemies),
+            "triggered_events": sorted([list(t) for t in persist.triggered_events]),
         }
 
     with open(_slot_path(slot), "w") as f:

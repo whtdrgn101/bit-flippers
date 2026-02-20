@@ -10,6 +10,7 @@ import pytmx.util_pygame
 
 from bit_flippers.settings import TILE_SIZE
 from bit_flippers.maps import NPCDef, EnemyNPCDef, DoorDef, IconMarker
+from bit_flippers.events import TileEvent
 
 _ASSET_DIR = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "assets")
@@ -217,6 +218,27 @@ class TiledMapRenderer:
             color = self._obj_color(obj)
             markers.append(IconMarker(x=tx, y=ty, icon_type=icon_type, color=color))
         return markers
+
+    def get_events(self) -> list[TileEvent]:
+        """Parse Event objects from TMX object layers."""
+        events = []
+        for obj in self._objects_by_type("Event"):
+            tx = int(obj.x) // self.tile_width
+            ty = int(obj.y) // self.tile_height
+            event_type = self._obj_prop(obj, "event_type", "custom")
+            once_raw = self._obj_prop(obj, "once", True)
+            once = once_raw not in (False, "false", "False", 0, "0")
+            props = {}
+            # Collect event-specific properties
+            for key in ("item", "text_key", "damage", "message"):
+                val = self._obj_prop(obj, key)
+                if val is not None:
+                    props[key] = val
+            events.append(TileEvent(
+                x=tx, y=ty, event_type=event_type,
+                properties=props, once=once,
+            ))
+        return events
 
     def get_map_properties(self) -> dict:
         """Return map-level custom properties as a dict."""
