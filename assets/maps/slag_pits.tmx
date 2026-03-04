@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="24" height="18" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="20">
  <tileset firstgid="1" source="tilesets/basechip.tsx"/>
+ <tileset firstgid="1065" source="tilesets/dithart_scifi_01.tsx"/>
+ <tileset firstgid="1257" source="tilesets/dithart_scifi_02.tsx"/>
+ <tileset firstgid="1449" source="tilesets/dithart_scifi_dungeon.tsx"/>
+ <tileset firstgid="1641" source="tilesets/dithart_alien_spaceship.tsx"/>
+ <tileset firstgid="1833" source="tilesets/dithart_dark_organic.tsx"/>
+ <tileset firstgid="2025" source="tilesets/dithart_scifi_items.tsx"/>
  <layer id="1" name="ground" width="24" height="18">
   <data encoding="csv">
 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
@@ -163,5 +169,11 @@
     <property name="once" type="bool" value="false"/>
    </properties>
   </object>
+  <object id="14" type="Scrap" x="160" y="128" width="0" height="0"/>
+  <object id="15" type="Scrap" x="576" y="128" width="0" height="0"/>
+  <object id="16" type="Scrap" x="352" y="256" width="0" height="0"/>
+  <object id="17" type="Scrap" x="96" y="352" width="0" height="0"/>
+  <object id="18" type="Scrap" x="480" y="448" width="0" height="0"/>
+  <object id="19" type="Scrap" x="256" y="480" width="0" height="0"/>
  </objectgroup>
 </map>

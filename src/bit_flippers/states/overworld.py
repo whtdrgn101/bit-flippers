@@ -520,6 +520,11 @@ class OverworldState:
             self._grant_rewards(enemy_data)
             # Update quest kill tracking
             self.player_quests.update_kill(enemy_data.name)
+            # Boss equipment drops
+            if enemy_data.drop_item and self._current_scripted_enemy is not None:
+                self.inventory.add(enemy_data.drop_item)
+                self.pickup_message = f"Obtained {enemy_data.drop_item}!"
+                self.pickup_message_timer = PICKUP_MESSAGE_DURATION
         if self._current_scripted_enemy is not None:
             self._current_scripted_enemy["defeated"] = True
         self._current_scripted_enemy = None
