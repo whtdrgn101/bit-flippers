@@ -1,19 +1,21 @@
-import random
 from enum import Enum, auto
 
 import pygame
 from bit_flippers.fonts import get_font
 from bit_flippers.settings import SCREEN_WIDTH, SCREEN_HEIGHT, TILE_SIZE
 from bit_flippers.combat import create_enemy_combatant, CombatEntity
-from bit_flippers.items import ITEM_REGISTRY
-from bit_flippers.player_stats import effective_attack, effective_defense, calc_hit_chance
-from bit_flippers.skills import SKILL_DEFS, calc_skill_effect
+from bit_flippers.player_stats import effective_attack, effective_defense
+from bit_flippers.skills import SKILL_DEFS
 from bit_flippers.particles import (
     spawn_particles, update_particles,
     get_shake_intensity, SKILL_PARTICLES,
 )
 from bit_flippers.status_effects import StatusEffectManager
 from bit_flippers.states.combat_renderer import CombatRenderer
+from bit_flippers.combat_actions import (
+    resolve_attack, resolve_skill, resolve_item,
+    resolve_enemy_turn, resolve_flee,
+)
 
 
 class Phase(Enum):
@@ -157,31 +159,66 @@ class CombatState:
             if event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 self._finish_combat()
 
+    # ------------------------------------------------------------------
+    # Action helpers
+    # ------------------------------------------------------------------
+
+    def _apply_damage_to_enemy(self, result):
+        """Apply damage from an ActionResult to the enemy, set UI state."""
+        if result.damage > 0:
+            self.enemy.hp = max(0, self.enemy.hp - result.damage)
+            self.game.audio.play_sfx("hit")
+        if result.flash_target == "enemy":
+            self.flash_target = "enemy"
+            self.flash_timer = 0.3
+            self.damage_text = f"-{result.damage}"
+            self.damage_text_timer = 1.0
+            self.damage_text_pos = (self.enemy_pos[0] + TILE_SIZE // 2, self.enemy_pos[1] - 10)
+        if result.heal > 0:
+            self.player.hp = min(self.player.max_hp, self.player.hp + result.heal)
+
+    def _apply_damage_to_player(self, result):
+        """Apply damage from an ActionResult to the player, set UI state."""
+        if result.damage > 0:
+            self.player.hp = max(0, self.player.hp - result.damage)
+            self.game.audio.play_sfx("hit")
+        if result.flash_target == "player":
+            self.flash_target = "player"
+            self.flash_timer = 0.3
+            self.damage_text = f"-{result.damage}"
+            self.damage_text_timer = 1.0
+            self.damage_text_pos = (self.player_pos[0] + TILE_SIZE // 2, self.player_pos[1] - 10)
+
+    def _handle_enemy_defeated(self):
+        """Shared victory logic for any action that kills the enemy."""
+        self.phase = Phase.VICTORY
+        self.message = f"Defeated {self.enemy.name}!"
+        self.reward_xp = self.enemy_data.xp_reward
+        self.reward_money = self.enemy_data.money_reward
+        self.message_timer = 0.0
+        self.game.audio.stop_music()
+        self.game.audio.play_sfx("victory")
+
+    # ------------------------------------------------------------------
+    # Player actions
+    # ------------------------------------------------------------------
+
     def _execute_player_action(self, action):
         if action == "Attack":
-            # Hit/miss check (include equipment dex bonus, Despondent penalty)
-            player_dex = self.player_stats.dexterity + self._eq_dex_bonus
-            if self.status_mgr.has_status("player", "Despondent"):
-                player_dex -= 4
-            hit_chance = calc_hit_chance(player_dex, self.enemy_data.dexterity)
-            if random.random() > hit_chance:
-                self.message = "Attack missed!"
-                self.defending = False
+            result = resolve_attack(
+                self.player_stats, self.player, self.enemy, self.enemy_data,
+                self._eq_dex_bonus, self.status_mgr,
+            )
+            self.defending = False
+            self.message = result.message
+
+            if not result.hit:
                 self.phase = Phase.PLAYER_ATTACK
                 self.phase_timer = 0.6
                 return
 
-            damage = max(1, self.player.attack - self.enemy.defense + random.randint(-1, 1))
-            self.enemy.hp = max(0, self.enemy.hp - damage)
-            self.game.audio.play_sfx("hit")
-            self.flash_target = "enemy"
-            self.flash_timer = 0.3
-            self.damage_text = f"-{damage}"
-            self.damage_text_timer = 1.0
-            self.damage_text_pos = (self.enemy_pos[0] + TILE_SIZE // 2, self.enemy_pos[1] - 10)
-            self.defending = False
-
-            if not self.enemy.is_alive:
+            self._apply_damage_to_enemy(result)
+            if result.target_killed:
                 self._handle_enemy_defeated()
             else:
                 self.phase = Phase.PLAYER_ATTACK
@@ -218,110 +255,131 @@ class CombatState:
             self.phase = Phase.ITEM_SELECT
 
         elif action == "Flee":
-            player_dex = self.player_stats.dexterity + self._eq_dex_bonus
-            enemy_dex = self.enemy_data.dexterity
-            flee_chance = max(0.20, min(0.80, 0.40 + (player_dex - enemy_dex) * 0.03))
-            if random.random() < flee_chance:
+            result = resolve_flee(self.player_stats, self.enemy_data, self._eq_dex_bonus)
+            self.message = result.message
+            if result.fled:
                 self.phase = Phase.FLED
-                self.message = "Got away safely!"
                 self.message_timer = 0.0
             else:
-                self.message = "Couldn't escape!"
                 self.phase = Phase.PLAYER_ATTACK
                 self.phase_timer = 0.6
-
-    def _handle_enemy_defeated(self):
-        """Shared victory logic for any action that kills the enemy."""
-        self.phase = Phase.VICTORY
-        self.message = f"Defeated {self.enemy.name}!"
-        self.reward_xp = self.enemy_data.xp_reward
-        self.reward_money = self.enemy_data.money_reward
-        self.message_timer = 0.0
-        self.game.audio.stop_music()
-        self.game.audio.play_sfx("victory")
 
     def _use_combat_skill(self, skill_id):
         skill = SKILL_DEFS.get(skill_id)
         if not skill:
             return
 
-        # Check SP
         if self.player_stats.current_sp < skill.sp_cost:
             self.message = "Not enough SP!"
             return
 
+        result = resolve_skill(
+            skill_id, self.player_stats, self.player, self.enemy,
+            self._eq_int_bonus,
+        )
+
         # Deduct SP
-        self.player_stats.current_sp -= skill.sp_cost
+        self.player_stats.current_sp -= result.sp_cost
         self.defending = False
 
-        # Use a copy of stats with equipment bonuses for skill calculation
-        from copy import copy
-        combat_stats = copy(self.player_stats)
-        combat_stats.intelligence += self._eq_int_bonus
-        value = calc_skill_effect(skill, combat_stats)
+        # Spawn particles
+        if result.skill_particles:
+            self._spawn_skill_particles(result.skill_particles)
 
-        self._spawn_skill_particles(skill_id)
+        # Apply result
+        self.message = result.message
 
-        if skill.effect_type == "damage":
-            self.enemy.hp = max(0, self.enemy.hp - value)
-            self.game.audio.play_sfx("hit")
-            self.flash_target = "enemy"
-            self.flash_timer = 0.3
-            self.damage_text = f"-{value}"
-            self.damage_text_timer = 1.0
-            self.damage_text_pos = (self.enemy_pos[0] + TILE_SIZE // 2, self.enemy_pos[1] - 10)
-            self.message = f"{skill.name}! Dealt {value} damage."
-            if not self.enemy.is_alive:
+        if result.damage > 0:
+            self._apply_damage_to_enemy(result)
+            if result.target_killed:
                 self._handle_enemy_defeated()
                 return
 
-        elif skill.effect_type == "heal":
-            old_hp = self.player.hp
-            self.player.hp = min(self.player.max_hp, self.player.hp + value)
-            healed = self.player.hp - old_hp
-            self.message = f"{skill.name}! Restored {healed} HP."
+        if result.heal > 0 and result.damage == 0:
+            self.player.hp = min(self.player.max_hp, self.player.hp + result.heal)
 
-        elif skill.effect_type == "buff_defense":
-            self.defense_buff += value
-            self.player.defense += value
-            self.message = f"{skill.name}! Defense +{value}."
+        if result.buff_defense > 0:
+            self.defense_buff += result.buff_defense
+            self.player.defense += result.buff_defense
 
-        elif skill.effect_type == "drain":
-            self.enemy.hp = max(0, self.enemy.hp - value)
-            old_hp = self.player.hp
-            self.player.hp = min(self.player.max_hp, self.player.hp + value)
-            healed = self.player.hp - old_hp
-            self.game.audio.play_sfx("hit")
-            self.flash_target = "enemy"
-            self.flash_timer = 0.3
-            self.damage_text = f"-{value}"
-            self.damage_text_timer = 1.0
-            self.damage_text_pos = (self.enemy_pos[0] + TILE_SIZE // 2, self.enemy_pos[1] - 10)
-            self.message = f"{skill.name}! Drained {value}, healed {healed}."
-            if not self.enemy.is_alive:
-                self._handle_enemy_defeated()
-                return
-
-        elif skill.effect_type == "debuff_attack":
-            # Clear any existing debuffs first (restore then re-apply)
+        if result.debuff_attack > 0:
             self._clear_enemy_debuffs()
-            self.enemy_atk_debuff = value
-            self.enemy.attack = max(0, self._enemy_base_attack - value)
-            # EMP Pulse (tier 2) also reduces DEF
-            if skill.skill_id == "emp_pulse":
-                self.enemy_def_debuff = value
-                self.enemy.defense = max(0, self._enemy_base_defense - value)
-                self.message = f"{skill.name}! Enemy ATK-{value}, DEF-{value} for 3 turns."
-            else:
-                self.message = f"{skill.name}! Enemy ATK-{value} for 3 turns."
-            self.debuff_turns_remaining = 3
+            self.enemy_atk_debuff = result.debuff_attack
+            self.enemy.attack = max(0, self._enemy_base_attack - result.debuff_attack)
+            if result.debuff_defense > 0:
+                self.enemy_def_debuff = result.debuff_defense
+                self.enemy.defense = max(0, self._enemy_base_defense - result.debuff_defense)
+            self.debuff_turns_remaining = result.debuff_turns
 
-        elif skill.effect_type == "cure_status":
+        if result.status_cured:
             self.status_mgr.cure_player(self.player)
-            self.message = f"{skill.name}! Status effects cleared."
 
         self.phase = Phase.PLAYER_ATTACK
         self.phase_timer = 0.6
+
+    def _use_combat_item(self, item_name):
+        result = resolve_item(item_name, self.player, self.enemy)
+        self.inventory.remove(item_name)
+        self.defending = False
+        self.message = result.message
+
+        if result.damage > 0:
+            self._apply_damage_to_enemy(result)
+            if result.target_killed:
+                self._handle_enemy_defeated()
+                return
+
+        if result.heal > 0:
+            self.player.hp = min(self.player.max_hp, self.player.hp + result.heal)
+
+        if result.buff_defense > 0:
+            self.defense_buff += result.buff_defense
+            self.player.defense += result.buff_defense
+
+        if result.status_cured:
+            self.status_mgr.cure_player(self.player)
+
+        self.phase = Phase.PLAYER_ATTACK
+        self.phase_timer = 0.6
+
+    # ------------------------------------------------------------------
+    # Enemy turn
+    # ------------------------------------------------------------------
+
+    def _do_enemy_attack(self):
+        result = resolve_enemy_turn(
+            self.enemy_data, self.enemy, self.player, self.player_stats,
+            self._eq_dex_bonus, self.status_mgr, self.defending,
+        )
+        self.defending = False
+        self.message = result.message
+
+        # Apply status effect if the enemy used an ability
+        if result.apply_status:
+            self.status_mgr.apply_status(
+                result.apply_status_target, result.apply_status,
+                constitution=self.player_stats.constitution,
+                player_entity=self.player, enemy_entity=self.enemy,
+            )
+
+        if result.damage > 0:
+            self._apply_damage_to_player(result)
+
+        if result.target_killed:
+            self.phase = Phase.DEFEAT
+            self.message = "You were defeated..."
+            self.message_timer = 0.0
+        elif not result.hit or result.damage > 0 or result.apply_status:
+            self.phase = Phase.ENEMY_ATTACK
+            self.phase_timer = 0.6
+        else:
+            # Stunned — no damage, just message
+            self.phase = Phase.ENEMY_ATTACK
+            self.phase_timer = 0.6
+
+    # ------------------------------------------------------------------
+    # Shared helpers
+    # ------------------------------------------------------------------
 
     def _spawn_skill_particles(self, skill_id):
         """Spawn particles for a skill at the appropriate target position."""
@@ -335,7 +393,6 @@ class CombatState:
         else:
             cx = self.player_pos[0] + TILE_SIZE // 2
             cy = self.player_pos[1] + TILE_SIZE // 2
-        # For converge (scrap_leech), particles start at enemy and converge on player
         if preset.get("pattern") == "converge":
             self.particles.extend(spawn_particles(
                 self.enemy_pos[0] + TILE_SIZE // 2,
@@ -357,112 +414,6 @@ class CombatState:
         self.enemy_atk_debuff = 0
         self.enemy_def_debuff = 0
         self.debuff_turns_remaining = 0
-
-    def _use_combat_item(self, item_name):
-        item = ITEM_REGISTRY.get(item_name)
-        if not item:
-            return
-
-        self.inventory.remove(item_name)
-        self.defending = False
-
-        if item.effect_type == "heal":
-            old_hp = self.player.hp
-            self.player.hp = min(self.player.max_hp, self.player.hp + item.effect_value)
-            healed = self.player.hp - old_hp
-            self.message = f"Used {item_name}! Restored {healed} HP."
-        elif item.effect_type == "damage":
-            self.enemy.hp = max(0, self.enemy.hp - item.effect_value)
-            self.flash_target = "enemy"
-            self.flash_timer = 0.3
-            self.damage_text = f"-{item.effect_value}"
-            self.damage_text_timer = 1.0
-            self.damage_text_pos = (self.enemy_pos[0] + TILE_SIZE // 2, self.enemy_pos[1] - 10)
-            self.message = f"Used {item_name}! Dealt {item.effect_value} damage."
-            if not self.enemy.is_alive:
-                self._handle_enemy_defeated()
-                return
-        elif item.effect_type == "buff_defense":
-            self.defense_buff += item.effect_value
-            self.player.defense += item.effect_value
-            self.message = f"Used {item_name}! Defense +{item.effect_value}."
-        elif item.effect_type == "cure_status":
-            self.status_mgr.cure_player(self.player)
-            self.message = f"Used {item_name}! Status effects cleared."
-
-        self.phase = Phase.PLAYER_ATTACK
-        self.phase_timer = 0.6
-
-    def _do_enemy_attack(self):
-        # Check if enemy is stunned
-        if self.status_mgr.remove_enemy_stun():
-            self.message = f"{self.enemy.name} is stunned and can't move!"
-            self.defending = False
-            self.phase = Phase.ENEMY_ATTACK
-            self.phase_timer = 0.6
-            return
-
-        # Check for special ability
-        ability = self.enemy_data.ability
-        if ability and random.random() < ability["chance"]:
-            self.status_mgr.apply_status(
-                "player", ability["status_effect"],
-                constitution=self.player_stats.constitution,
-                player_entity=self.player, enemy_entity=self.enemy,
-            )
-            # Deal half normal damage
-            half_damage = max(1, (self.enemy.attack - self.player.defense + random.randint(-1, 1)) // 2)
-            if self.defending:
-                half_damage = max(1, half_damage // 2)
-            self.player.hp = max(0, self.player.hp - half_damage)
-            self.game.audio.play_sfx("hit")
-            self.flash_target = "player"
-            self.flash_timer = 0.3
-            self.damage_text = f"-{half_damage}"
-            self.damage_text_timer = 1.0
-            self.damage_text_pos = (self.player_pos[0] + TILE_SIZE // 2, self.player_pos[1] - 10)
-            self.message = f"{ability['name']}! {ability['status_effect']} inflicted! -{half_damage} HP"
-            self.defending = False
-
-            if not self.player.is_alive:
-                self.phase = Phase.DEFEAT
-                self.message = "You were defeated..."
-                self.message_timer = 0.0
-            else:
-                self.phase = Phase.ENEMY_ATTACK
-                self.phase_timer = 0.6
-            return
-
-        # Normal attack — hit/miss check (include equipment dex bonus)
-        player_dex = self.player_stats.dexterity + self._eq_dex_bonus
-        if self.status_mgr.has_status("player", "Despondent"):
-            player_dex -= 4
-        hit_chance = calc_hit_chance(self.enemy_data.dexterity, player_dex)
-        if random.random() > hit_chance:
-            self.message = f"{self.enemy.name} missed!"
-            self.defending = False
-            self.phase = Phase.ENEMY_ATTACK
-            self.phase_timer = 0.6
-            return
-
-        raw_damage = max(1, self.enemy.attack - self.player.defense + random.randint(-1, 1))
-        damage = max(1, raw_damage // 2) if self.defending else raw_damage
-        self.player.hp = max(0, self.player.hp - damage)
-        self.game.audio.play_sfx("hit")
-        self.flash_target = "player"
-        self.flash_timer = 0.3
-        self.damage_text = f"-{damage}"
-        self.damage_text_timer = 1.0
-        self.damage_text_pos = (self.player_pos[0] + TILE_SIZE // 2, self.player_pos[1] - 10)
-        self.defending = False
-
-        if not self.player.is_alive:
-            self.phase = Phase.DEFEAT
-            self.message = "You were defeated..."
-            self.message_timer = 0.0
-        else:
-            self.phase = Phase.ENEMY_ATTACK
-            self.phase_timer = 0.6
 
     def _finish_combat(self):
         from bit_flippers.states.transition import FadeTransition
@@ -578,7 +529,6 @@ class CombatState:
                 if self.status_mgr.remove_player_stun():
                     self.message = "You are stunned and can't move!"
                     self.defending = False
-                    # Go straight to enemy attack after a brief pause
                     self.phase = Phase.PLAYER_ATTACK
                     self.phase_timer = 0.6
                 else:

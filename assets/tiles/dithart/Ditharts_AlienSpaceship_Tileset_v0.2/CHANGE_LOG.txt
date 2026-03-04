@@ -1,0 +1,8 @@
+
+v0.2. - Published 17.01.2023
+- Added new wall connections.
+- Added godot 3x3 minimal autotile example 
+- Added upscaled version of the tileset of 48x48 and 64x64
+
+v0.1. - Published 12.01.2022.
+Initial publish of alien spaceship tileset

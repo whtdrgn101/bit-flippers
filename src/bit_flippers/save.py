@@ -93,7 +93,7 @@ def save_game(overworld, slot: int | None = None) -> None:
         "player_x": overworld.player_x,
         "player_y": overworld.player_y,
         "player_facing": overworld.player_facing,
-        "steps_since_encounter": overworld.steps_since_encounter,
+        "steps_since_encounter": overworld.encounters.steps_since_encounter,
         "player_sprite_key": getattr(overworld, "player_sprite_key", "pipoya-characters/Male/Male 01-1"),
         "map_persistence": {},
     }

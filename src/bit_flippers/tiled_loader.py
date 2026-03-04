@@ -219,6 +219,15 @@ class TiledMapRenderer:
             markers.append(IconMarker(x=tx, y=ty, icon_type=icon_type, color=color))
         return markers
 
+    # All recognised event properties (superset across all event types)
+    _EVENT_PROPS = (
+        "item", "text_key", "damage", "message",
+        "target_x", "target_y", "enemy_type",
+        "heal_hp", "heal_sp",
+        "requires_quest", "required_state", "requires_item",
+        "sfx", "amount",
+    )
+
     def get_events(self) -> list[TileEvent]:
         """Parse Event objects from TMX object layers."""
         events = []
@@ -228,15 +237,16 @@ class TiledMapRenderer:
             event_type = self._obj_prop(obj, "event_type", "custom")
             once_raw = self._obj_prop(obj, "once", True)
             once = once_raw not in (False, "false", "False", 0, "0")
+            trigger = self._obj_prop(obj, "trigger", "auto")
             props = {}
-            # Collect event-specific properties
-            for key in ("item", "text_key", "damage", "message"):
+            # Collect all recognised event properties
+            for key in self._EVENT_PROPS:
                 val = self._obj_prop(obj, key)
                 if val is not None:
                     props[key] = val
             events.append(TileEvent(
                 x=tx, y=ty, event_type=event_type,
-                properties=props, once=once,
+                properties=props, once=once, trigger=trigger,
             ))
         return events
 

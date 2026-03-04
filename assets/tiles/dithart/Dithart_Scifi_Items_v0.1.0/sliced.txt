@@ -1,0 +1,33 @@
+images:
+
+01-02	- +floor (example)
+03-04	- +wall (example)
+09 	- medical box
+10-13	- weapon box
+14-15	- first aid
+16	- simple box
+17	- heart
+18	- +
+19-24	- pills
+25	- blood 
+26	- first aid box
+27	- medicine
+28	- dna
+29	- molecule
+33-37	- energy cells
+41-44	- syringe 
+49-52	- syringe  (horizontally)
+57-59	- circuit board
+65-69	- white_blue guns
+73-77	- dark_orange guns
+81-82	- red_purple guns
+83	- riffle
+89	- chainsaw
+90-91	- mines
+97-100	- grenade
+105-109	- bullets
+113-115	- armors
+121-123	- helmets
+129-131	- gloves
+137-139	- spacesuits
+145-147	- boots
