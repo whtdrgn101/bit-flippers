@@ -20,7 +20,7 @@ class QuestDef:
     description: str
     objectives: list[dict]  # list of {obj_type, target, required} templates
     rewards: dict  # {scrap, xp, items?, skills?, equipment?}
-    prerequisite: str | None = None  # quest_id that must be "done"
+    prerequisite: str | list[str] | None = None  # quest_id(s) that must be "done"
     dialogue_offer: str = ""  # strings.json key
     dialogue_active: str = ""
     dialogue_complete: str = ""
@@ -28,7 +28,7 @@ class QuestDef:
 
 
 # ---------------------------------------------------------------------------
-# Quest registry — 5 quests
+# Quest registry — 15 quests
 # ---------------------------------------------------------------------------
 
 QUEST_REGISTRY: dict[str, QuestDef] = {}
@@ -102,6 +102,143 @@ _QUEST_LIST = [
         dialogue_complete="quest_factory_sweep_complete",
         dialogue_done="quest_factory_sweep_done",
     ),
+    # --- Comm Tower chain (Operator NPC) ---
+    QuestDef(
+        quest_id="comm_unlock",
+        name="Signal Interference",
+        giver_npc="Operator",
+        description="The Operator has detected strange signals from the Comm Tower. Investigate the source.",
+        objectives=[{"obj_type": "visit", "target": "comm_tower", "required": 1}],
+        rewards={"scrap": 150, "xp": 80},
+        prerequisite="factory_sweep",
+        dialogue_offer="quest_comm_unlock_offer",
+        dialogue_active="quest_comm_unlock_active",
+        dialogue_complete="quest_comm_unlock_complete",
+        dialogue_done="quest_comm_unlock_done",
+    ),
+    QuestDef(
+        quest_id="comm_boss",
+        name="Override Protocol",
+        giver_npc="Operator",
+        description="A Comm Overlord controls the tower's systems. Defeat it to restore communications.",
+        objectives=[{"obj_type": "kill", "target": "Comm Overlord", "required": 1}],
+        rewards={"scrap": 300, "xp": 150, "items": {"Repair Kit": 3}},
+        prerequisite="comm_unlock",
+        dialogue_offer="quest_comm_boss_offer",
+        dialogue_active="quest_comm_boss_active",
+        dialogue_complete="quest_comm_boss_complete",
+        dialogue_done="quest_comm_boss_done",
+    ),
+    QuestDef(
+        quest_id="comm_sweep",
+        name="Static Purge",
+        giver_npc="Operator",
+        description="Residual drones still patrol the tower. Clear out 5 Static Drones.",
+        objectives=[{"obj_type": "kill", "target": "Static Drone", "required": 5}],
+        rewards={"scrap": 250, "xp": 130},
+        prerequisite="comm_boss",
+        dialogue_offer="quest_comm_sweep_offer",
+        dialogue_active="quest_comm_sweep_active",
+        dialogue_complete="quest_comm_sweep_complete",
+        dialogue_done="quest_comm_sweep_done",
+    ),
+    # --- Slag Pits chain (Smelter NPC) ---
+    QuestDef(
+        quest_id="slag_unlock",
+        name="Thermal Readings",
+        giver_npc="Smelter",
+        description="The Smelter needs thermal data from the Slag Pits. Head there and take readings.",
+        objectives=[{"obj_type": "visit", "target": "slag_pits", "required": 1}],
+        rewards={"scrap": 200, "xp": 100},
+        prerequisite="factory_sweep",
+        dialogue_offer="quest_slag_unlock_offer",
+        dialogue_active="quest_slag_unlock_active",
+        dialogue_complete="quest_slag_unlock_complete",
+        dialogue_done="quest_slag_unlock_done",
+    ),
+    QuestDef(
+        quest_id="slag_boss",
+        name="Heart of the Furnace",
+        giver_npc="Smelter",
+        description="A massive Slag Titan lurks in the deepest pit. Destroy it to stop the molten overflow.",
+        objectives=[{"obj_type": "kill", "target": "Slag Titan", "required": 1}],
+        rewards={"scrap": 350, "xp": 175, "items": {"Voltage Spike": 2}},
+        prerequisite="slag_unlock",
+        dialogue_offer="quest_slag_boss_offer",
+        dialogue_active="quest_slag_boss_active",
+        dialogue_complete="quest_slag_boss_complete",
+        dialogue_done="quest_slag_boss_done",
+    ),
+    QuestDef(
+        quest_id="slag_sweep",
+        name="Cooling the Pits",
+        giver_npc="Smelter",
+        description="Slag Crawlers are still overheating the vents. Eliminate 5 of them.",
+        objectives=[{"obj_type": "kill", "target": "Slag Crawler", "required": 5}],
+        rewards={"scrap": 300, "xp": 160},
+        prerequisite="slag_boss",
+        dialogue_offer="quest_slag_sweep_offer",
+        dialogue_active="quest_slag_sweep_active",
+        dialogue_complete="quest_slag_sweep_complete",
+        dialogue_done="quest_slag_sweep_done",
+    ),
+    # --- Data Vault chain (Drifter NPC, reused) ---
+    QuestDef(
+        quest_id="vault_unlock",
+        name="Deep Archive",
+        giver_npc="Drifter",
+        description="With the Comm Tower and Slag Pits secured, the path to the Data Vault is clear. Explore it.",
+        objectives=[{"obj_type": "visit", "target": "data_vault", "required": 1}],
+        rewards={"scrap": 250, "xp": 120},
+        prerequisite=["comm_boss", "slag_boss"],
+        dialogue_offer="quest_vault_unlock_offer",
+        dialogue_active="quest_vault_unlock_active",
+        dialogue_complete="quest_vault_unlock_complete",
+        dialogue_done="quest_vault_unlock_done",
+    ),
+    QuestDef(
+        quest_id="vault_boss",
+        name="System Overwrite",
+        giver_npc="Drifter",
+        description="The Archive Core guards the vault's deepest secrets. Shut it down permanently.",
+        objectives=[{"obj_type": "kill", "target": "Archive Core", "required": 1}],
+        rewards={"scrap": 500, "xp": 250},
+        prerequisite="vault_unlock",
+        dialogue_offer="quest_vault_boss_offer",
+        dialogue_active="quest_vault_boss_active",
+        dialogue_complete="quest_vault_boss_complete",
+        dialogue_done="quest_vault_boss_done",
+    ),
+    QuestDef(
+        quest_id="vault_sweep",
+        name="Data Recovery",
+        giver_npc="Drifter",
+        description="Firewall Sentinels still guard corrupted data nodes. Destroy 4 of them to recover the archives.",
+        objectives=[{"obj_type": "kill", "target": "Firewall Sentinel", "required": 4}],
+        rewards={"scrap": 400, "xp": 200},
+        prerequisite="vault_boss",
+        dialogue_offer="quest_vault_sweep_offer",
+        dialogue_active="quest_vault_sweep_active",
+        dialogue_complete="quest_vault_sweep_complete",
+        dialogue_done="quest_vault_sweep_done",
+    ),
+    # --- Final dungeon gate (Old Tinker NPC, reused) ---
+    QuestDef(
+        quest_id="nexus_gate",
+        name="The Core Nexus",
+        giver_npc="Old Tinker",
+        description="All threats have been neutralized. The Core Nexus awaits. Enter it and destroy the Omega Core.",
+        objectives=[
+            {"obj_type": "visit", "target": "core_nexus", "required": 1},
+            {"obj_type": "kill", "target": "Omega Core", "required": 1},
+        ],
+        rewards={"scrap": 1000, "xp": 500},
+        prerequisite=["comm_boss", "slag_boss", "vault_boss"],
+        dialogue_offer="quest_nexus_gate_offer",
+        dialogue_active="quest_nexus_gate_active",
+        dialogue_complete="quest_nexus_gate_complete",
+        dialogue_done="quest_nexus_gate_done",
+    ),
 ]
 
 for _q in _QUEST_LIST:
@@ -126,9 +263,12 @@ class PlayerQuests:
         qdef = QUEST_REGISTRY.get(quest_id)
         if qdef is None:
             return False
-        if qdef.prerequisite and self.states.get(qdef.prerequisite) != "done":
-            return False
-        return True
+        prereq = qdef.prerequisite
+        if prereq is None:
+            return True
+        if isinstance(prereq, list):
+            return all(self.states.get(p) == "done" for p in prereq)
+        return self.states.get(prereq) == "done"
 
     def get_state(self, quest_id: str) -> str | None:
         """Return quest state, auto-promoting to 'available' if prereqs met."""
@@ -157,7 +297,7 @@ class PlayerQuests:
                 if best is None or best[1] != "complete":
                     best = (qid, state)
             elif state == "available":
-                if best is None:
+                if best is None or best[1] == "done":
                     best = (qid, state)
             elif state == "done":
                 if best is None:

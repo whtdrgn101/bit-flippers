@@ -183,12 +183,18 @@ class TiledMapRenderer:
             target_spawn_x = int(self._obj_prop(obj, "target_spawn_x", 0))
             target_spawn_y = int(self._obj_prop(obj, "target_spawn_y", 0))
             target_facing = self._obj_prop(obj, "target_facing", "down")
+            requires_quest = self._obj_prop(obj, "requires_quest") or None
+            required_state = self._obj_prop(obj, "required_state", "active")
+            locked_message = self._obj_prop(obj, "locked_message", "The way is blocked.")
             doors.append(DoorDef(
                 x=tx, y=ty,
                 target_map_id=target_map_id,
                 target_spawn_x=target_spawn_x,
                 target_spawn_y=target_spawn_y,
                 target_facing=target_facing,
+                requires_quest=requires_quest,
+                required_state=required_state,
+                locked_message=locked_message,
             ))
         return doors
 

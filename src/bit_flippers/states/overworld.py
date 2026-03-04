@@ -626,6 +626,16 @@ class OverworldState:
                 return True
         return False
 
+    def _door_is_open(self, door):
+        """Check whether a quest-gated door is unlocked."""
+        if door.requires_quest is None:
+            return True
+        state = self.player_quests.get_state(door.requires_quest)
+        if state is None:
+            return False
+        order = {"available": 0, "active": 1, "complete": 2, "done": 3}
+        return order.get(state, -1) >= order.get(door.required_state, 1)
+
     def _try_move(self, key):
         dx, dy, facing = DIRECTION_MAP[key]
         self.player_facing = facing
@@ -640,6 +650,13 @@ class OverworldState:
             # Check for door transition
             for door in self._current_doors:
                 if door.x == new_x and door.y == new_y:
+                    if not self._door_is_open(door):
+                        # Undo the move and show locked message
+                        self.player_x -= dx
+                        self.player_y -= dy
+                        self.pickup_message = door.locked_message
+                        self.pickup_message_timer = PICKUP_MESSAGE_DURATION
+                        return
                     self._handle_door_transition()
                     return
 

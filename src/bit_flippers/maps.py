@@ -11,6 +11,9 @@ class DoorDef:
     target_spawn_x: int
     target_spawn_y: int
     target_facing: str = "down"
+    requires_quest: str | None = None
+    required_state: str = "active"
+    locked_message: str = "The way is blocked."
 
 
 @dataclass
@@ -98,6 +101,14 @@ MAP_REGISTRY: dict[str, MapDef] = {
                 40, 32, "Scout", "scout_overworld",
                 color=(100, 160, 200), facing="down", sprite_key="scout",
             ),
+            NPCDef(
+                36, 31, "Operator", "operator_overworld",
+                color=(80, 160, 220), facing="down",
+            ),
+            NPCDef(
+                42, 31, "Smelter", "smelter_overworld",
+                color=(220, 120, 40), facing="down",
+            ),
         ],
         enemies=[
             EnemyNPCDef(20, 12, "Rust Golem", (160, 60, 40)),
@@ -110,8 +121,15 @@ MAP_REGISTRY: dict[str, MapDef] = {
             DoorDef(68, 32, "scrap_factory", 12, 15, "up"),
             DoorDef(40, 27, "volt_forge", 5, 6, "up"),
             DoorDef(46, 29, "iron_shell", 5, 6, "up"),
-            DoorDef(25, 15, "comm_tower", 11, 16, "up"),
-            DoorDef(72, 42, "slag_pits", 12, 16, "up"),
+            DoorDef(25, 15, "comm_tower", 11, 16, "up",
+                    requires_quest="comm_unlock", required_state="active",
+                    locked_message="The tower door is sealed. Someone might know how to open it."),
+            DoorDef(72, 42, "slag_pits", 12, 16, "up",
+                    requires_quest="slag_unlock", required_state="active",
+                    locked_message="Intense heat blocks the entrance. Someone might know a way in."),
+            DoorDef(40, 10, "core_nexus", 6, 9, "up",
+                    requires_quest="nexus_gate", required_state="active",
+                    locked_message="A massive blast door. It won't budge."),
         ],
         encounter_table=["Scrap Rat", "Scrap Rat", "Wire Spider", "Rust Golem"],
         encounter_chance=0.05,
@@ -194,7 +212,9 @@ MAP_REGISTRY: dict[str, MapDef] = {
         ],
         doors=[
             DoorDef(1, 12, "scrap_cave", 18, 3, "down"),
-            DoorDef(16, 2, "data_vault", 1, 14, "up"),
+            DoorDef(16, 2, "data_vault", 1, 14, "up",
+                    requires_quest="vault_unlock", required_state="active",
+                    locked_message="Security lockdown. The vault requires authorization."),
         ],
         encounter_table=["Core Leech", "Volt Wraith", "Plasma Hound"],
         encounter_chance=0.07,
@@ -284,5 +304,22 @@ MAP_REGISTRY: dict[str, MapDef] = {
         encounter_chance=0.08,
         music_track="data_vault",
         tmx_file="data_vault.tmx",
+    ),
+    "core_nexus": MapDef(
+        map_id="core_nexus",
+        display_name="Core Nexus",
+        player_start_x=6,
+        player_start_y=9,
+        npcs=[],
+        enemies=[
+            EnemyNPCDef(6, 2, "Omega Core", (255, 60, 60)),
+        ],
+        doors=[
+            DoorDef(6, 10, "overworld", 40, 11, "down"),
+        ],
+        encounter_table=["Cipher Phantom", "Firewall Sentinel", "Bit Corruptor"],
+        encounter_chance=0.08,
+        music_track="data_vault",
+        tmx_file="core_nexus.tmx",
     ),
 }

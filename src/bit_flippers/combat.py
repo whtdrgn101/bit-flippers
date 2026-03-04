@@ -63,6 +63,8 @@ ENEMY_TYPES: dict[str, EnemyData] = {
     "Firewall Sentinel": EnemyData(name="Firewall Sentinel", hp=35, attack=11, defense=8, color=(200, 60, 60), xp_reward=34, money_reward=24, dexterity=5, ability={"name": "Lockdown Protocol", "status_effect": "Stun", "chance": 0.25}),
     "Bit Corruptor": EnemyData(name="Bit Corruptor", hp=24, attack=14, defense=2, color=(40, 220, 200), xp_reward=30, money_reward=20, dexterity=9, ability={"name": "Byte Drain", "status_effect": "Poison", "chance": 0.30}),
     "Archive Core": EnemyData(name="Archive Core", hp=100, attack=18, defense=8, color=(180, 40, 255), xp_reward=150, money_reward=100, dexterity=7, ability={"name": "System Overwrite", "status_effect": "Stun", "chance": 0.35}, drop_item="Chromium Sync Module"),
+    # --- Core Nexus ---
+    "Omega Core": EnemyData(name="Omega Core", hp=150, attack=22, defense=10, color=(255, 60, 60), xp_reward=200, money_reward=150, dexterity=8, ability={"name": "System Purge", "status_effect": "Stun", "chance": 0.40}, drop_item="Omega Core Matrix"),
 }
 
 

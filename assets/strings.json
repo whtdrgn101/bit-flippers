@@ -170,6 +170,197 @@
       "Central Data Archive — Core Storage.",
       "The last backup of the old world's knowledge rests here.",
       "The Archive Core guards it with lethal precision."
+    ],
+
+    "operator_overworld": [
+      "I used to run comms for the whole sector.",
+      "The Comm Tower's gone dark. Nothing but static now.",
+      "If someone could get up there, maybe we could restore the signal."
+    ],
+    "smelter_overworld": [
+      "The foundry heat keeps me warm, but the Slag Pits...",
+      "Something's stoking those furnaces from deep below.",
+      "I need thermal readings before anyone goes down there."
+    ],
+
+    "quest_comm_unlock_offer": [
+      "The Comm Tower's been broadcasting interference for weeks.",
+      "I need someone to go in and find the source.",
+      "Head to the tower and report back what you find."
+    ],
+    "quest_comm_unlock_active": [
+      "Have you reached the Comm Tower yet?",
+      "The entrance is northwest of here. Get in there and take a look."
+    ],
+    "quest_comm_unlock_complete": [
+      "You made it inside? Good work.",
+      "Now I have a clearer picture of what we're dealing with."
+    ],
+    "quest_comm_unlock_done": [
+      "The interference data you brought back was invaluable.",
+      "Stay sharp up there — the tower's far from safe."
+    ],
+
+    "quest_comm_boss_offer": [
+      "My analysis shows a Comm Overlord controlling the tower.",
+      "It's hijacking every relay to broadcast its own signal.",
+      "Take it down and the tower's ours again."
+    ],
+    "quest_comm_boss_active": [
+      "The Comm Overlord is still in control up there.",
+      "Find it in the tower and shut it down permanently."
+    ],
+    "quest_comm_boss_complete": [
+      "The signal's clearing up already!",
+      "Outstanding work. Here — you've more than earned this."
+    ],
+    "quest_comm_boss_done": [
+      "Communications are slowly coming back online.",
+      "First clear signal in months. All thanks to you."
+    ],
+
+    "quest_comm_sweep_offer": [
+      "The Overlord's gone, but Static Drones still patrol the halls.",
+      "Clear out 5 of them so my team can move in safely.",
+      "Should be routine after what you've already handled."
+    ],
+    "quest_comm_sweep_active": [
+      "Those Static Drones won't clear themselves.",
+      "I need 5 of them eliminated before it's safe in there."
+    ],
+    "quest_comm_sweep_complete": [
+      "The tower's secure? Excellent.",
+      "My crew can start repairs. Here's your payment."
+    ],
+    "quest_comm_sweep_done": [
+      "The Comm Tower is fully operational again.",
+      "We're picking up signals from sectors we thought were dead."
+    ],
+
+    "quest_slag_unlock_offer": [
+      "The Slag Pits are overheating — way beyond normal levels.",
+      "I need someone to go down and take thermal readings.",
+      "Head to the pits and see what's causing the surge."
+    ],
+    "quest_slag_unlock_active": [
+      "The Slag Pits entrance is to the far east.",
+      "Get down there and take those thermal readings for me."
+    ],
+    "quest_slag_unlock_complete": [
+      "You survived the heat? Tough as titanium.",
+      "These readings confirm my worst fears."
+    ],
+    "quest_slag_unlock_done": [
+      "Those thermal readings changed everything.",
+      "Now we know what we're really dealing with down there."
+    ],
+
+    "quest_slag_boss_offer": [
+      "The readings show a Slag Titan deep in the pits.",
+      "It's the one stoking the furnaces. The whole sector will melt.",
+      "You have to destroy it before the heat spreads further."
+    ],
+    "quest_slag_boss_active": [
+      "The Slag Titan is still feeding those furnaces.",
+      "Get down to the deepest level and take it out."
+    ],
+    "quest_slag_boss_complete": [
+      "The temperature's already dropping! You did it!",
+      "Take these — you'll need them for what comes next."
+    ],
+    "quest_slag_boss_done": [
+      "The pits are cooling down nicely.",
+      "First time in years I can work without heat shielding."
+    ],
+
+    "quest_slag_sweep_offer": [
+      "The Titan's gone, but Slag Crawlers still infest the vents.",
+      "Kill 5 of them so the cooling systems can stabilize.",
+      "Then we can finally shut down those furnaces for good."
+    ],
+    "quest_slag_sweep_active": [
+      "Slag Crawlers are still clogging the vents.",
+      "I need 5 cleared out before the cooling kicks in."
+    ],
+    "quest_slag_sweep_complete": [
+      "The vents are clear? The cooling systems are kicking in!",
+      "Here's your reward. Well deserved."
+    ],
+    "quest_slag_sweep_done": [
+      "The Slag Pits are finally under control.",
+      "Temperature's stable for the first time in decades."
+    ],
+
+    "quest_vault_unlock_offer": [
+      "You've proven yourself in the tower and the pits.",
+      "There's a place deeper — the Data Vault, through the Reactor Core.",
+      "Whatever's behind all this, the answers are in there. Go find them."
+    ],
+    "quest_vault_unlock_active": [
+      "The Data Vault is beyond the Reactor Core.",
+      "Get in there and see what secrets it holds."
+    ],
+    "quest_vault_unlock_complete": [
+      "You reached the vault? What did you find?",
+      "Incredible. This changes everything."
+    ],
+    "quest_vault_unlock_done": [
+      "The vault's secrets are slowly making sense.",
+      "There's still more to uncover in there."
+    ],
+
+    "quest_vault_boss_offer": [
+      "The Archive Core is the vault's guardian AI.",
+      "It controls everything — defenses, data locks, countermeasures.",
+      "Destroy it and we can access the old world's knowledge."
+    ],
+    "quest_vault_boss_active": [
+      "The Archive Core is still active deep in the vault.",
+      "Find it and shut it down for good."
+    ],
+    "quest_vault_boss_complete": [
+      "The Archive Core is offline? Do you realize what this means?",
+      "The data is ours. Here — take this."
+    ],
+    "quest_vault_boss_done": [
+      "With the Archive Core down, we're decrypting everything.",
+      "The old world had secrets we never imagined."
+    ],
+
+    "quest_vault_sweep_offer": [
+      "Firewall Sentinels are still guarding corrupted data nodes.",
+      "Take out 4 of them so we can recover the archives.",
+      "Every node recovered is another piece of our history saved."
+    ],
+    "quest_vault_sweep_active": [
+      "Those Firewall Sentinels won't let us near the data.",
+      "Destroy 4 of them and the archives are ours."
+    ],
+    "quest_vault_sweep_complete": [
+      "The data nodes are accessible! Years of lost knowledge, recovered.",
+      "You've done more for us than you know. Take this."
+    ],
+    "quest_vault_sweep_done": [
+      "The archives are being restored, piece by piece.",
+      "Historians will sing your name. If any survive."
+    ],
+
+    "quest_nexus_gate_offer": [
+      "You've cleared the tower, the pits, and the vault.",
+      "There's one place left — the Core Nexus, north of the settlement.",
+      "Whatever created all these machines... it's in there. End this."
+    ],
+    "quest_nexus_gate_active": [
+      "The Core Nexus awaits to the north.",
+      "Find the Omega Core and destroy it. This ends now."
+    ],
+    "quest_nexus_gate_complete": [
+      "You... you actually did it. The Omega Core is destroyed.",
+      "I never thought I'd see the day. Thank you."
+    ],
+    "quest_nexus_gate_done": [
+      "The machines are shutting down across the sector.",
+      "For the first time in years, there's real hope."
     ]
   }
 }

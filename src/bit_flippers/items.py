@@ -145,6 +145,12 @@ ITEM_REGISTRY: dict[str, Item] = {
         item_type="equipment", slot="accessory",
         stat_bonuses={"dexterity": 3, "intelligence": 3, "max_sp": 5}, price=450,
     ),
+    "Omega Core Matrix": Item(
+        name="Omega Core Matrix",
+        description="The nexus heart. ATK +5, DEF +5, Max HP +10.",
+        item_type="equipment", slot="accessory",
+        stat_bonuses={"strength": 5, "resilience": 5, "max_hp": 10}, price=800,
+    ),
 }
 
 # Items available in the default shop (unlimited stock)

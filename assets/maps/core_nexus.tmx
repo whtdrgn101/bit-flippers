@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="12" height="10" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="5">
+ <properties>
+  <property name="display_name" value="Core Nexus"/>
+  <property name="music_track" value="data_vault"/>
+  <property name="encounter_table" value="Cipher Phantom,Firewall Sentinel,Bit Corruptor"/>
+  <property name="encounter_chance" value="0.08"/>
+ </properties>
+ <tileset firstgid="1" source="tilesets/basechip.tsx"/>
+ <tileset firstgid="1065" source="tilesets/dithart_scifi_01.tsx"/>
+ <tileset firstgid="1257" source="tilesets/dithart_scifi_02.tsx"/>
+ <tileset firstgid="1449" source="tilesets/dithart_scifi_dungeon.tsx"/>
+ <tileset firstgid="1641" source="tilesets/dithart_alien_spaceship.tsx"/>
+ <tileset firstgid="1833" source="tilesets/dithart_dark_organic.tsx"/>
+ <tileset firstgid="2025" source="tilesets/dithart_scifi_items.tsx"/>
+ <layer id="1" name="ground" width="12" height="10">
+  <data encoding="csv">
+2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2,
+2,2,2,2,2,2,2,2,2,2,2,2
+</data>
+ </layer>
+ <layer id="2" name="detail" width="12" height="10">
+  <data encoding="csv">
+577,585,585,585,585,585,585,585,585,585,585,577,
+577,0,0,0,0,0,0,0,0,0,0,577,
+577,0,49,0,0,0,0,0,0,49,0,577,
+577,0,0,0,0,0,0,0,0,0,0,577,
+577,585,0,0,0,577,577,0,0,0,585,577,
+577,0,0,0,0,0,0,0,0,0,0,577,
+577,0,0,0,0,0,0,0,0,0,0,577,
+577,0,49,0,0,577,577,0,0,49,0,577,
+577,0,0,0,0,0,0,0,0,0,0,577,
+577,585,585,585,585,0,0,585,585,585,585,577
+</data>
+ </layer>
+ <layer id="3" name="above" width="12" height="10" visible="0">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <objectgroup id="4" name="entities">
+  <object id="1" type="Door" x="192" y="320" width="0" height="0">
+   <properties>
+    <property name="target_map_id" value="overworld"/>
+    <property name="target_spawn_x" type="int" value="40"/>
+    <property name="target_spawn_y" type="int" value="11"/>
+    <property name="target_facing" value="down"/>
+   </properties>
+  </object>
+  <object id="2" type="Spawn" x="192" y="288" width="0" height="0">
+   <properties>
+    <property name="facing" value="up"/>
+   </properties>
+  </object>
+  <object id="3" name="Omega Core" type="Enemy" x="192" y="64" width="0" height="0">
+   <properties>
+    <property name="enemy_type_key" value="Omega Core"/>
+    <property name="color_r" type="int" value="255"/>
+    <property name="color_g" type="int" value="60"/>
+    <property name="color_b" type="int" value="60"/>
+   </properties>
+  </object>
+ </objectgroup>
+</map>

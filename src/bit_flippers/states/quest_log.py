@@ -10,17 +10,27 @@ from bit_flippers.settings import (
 )
 from bit_flippers.quests import QUEST_REGISTRY
 
+_FILTER_TABS = ["Current", "Completed", "All"]
+
+_EMPTY_MESSAGES = {
+    "Current": "No active quests. Talk to NPCs!",
+    "Completed": "No completed quests yet.",
+    "All": "No quests yet. Talk to NPCs!",
+}
+
 
 class QuestLogState:
     def __init__(self, game, player_quests):
         self.game = game
         self.player_quests = player_quests
         self.cursor = 0
+        self.filter_index = 0
 
         self.font_title = get_font(36)
         self.font_quest = get_font(26)
         self.font_detail = get_font(22)
         self.font_hint = get_font(20)
+        self.font_tab = get_font(24)
 
         self.overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
         self.overlay.fill((10, 10, 20, 220))
@@ -28,12 +38,19 @@ class QuestLogState:
         self._rebuild_list()
 
     def _rebuild_list(self):
-        """Build the sorted quest list: complete first, then active, then available, then done."""
+        """Build the sorted quest list filtered by the current tab."""
         all_quests = self.player_quests.get_all_quests()
+        tab = _FILTER_TABS[self.filter_index]
+        if tab == "Current":
+            all_quests = [(q, s) for q, s in all_quests if s in ("active", "complete", "available")]
+        elif tab == "Completed":
+            all_quests = [(q, s) for q, s in all_quests if s == "done"]
         order = {"complete": 0, "active": 1, "available": 2, "done": 3}
         self.quest_list = sorted(all_quests, key=lambda q: order.get(q[1], 9))
         if self.quest_list and self.cursor >= len(self.quest_list):
             self.cursor = len(self.quest_list) - 1
+        if not self.quest_list:
+            self.cursor = 0
 
     def handle_event(self, event):
         if event.type != pygame.KEYDOWN:
@@ -45,6 +62,14 @@ class QuestLogState:
             self.cursor = (self.cursor - 1) % len(self.quest_list)
         elif event.key == pygame.K_DOWN and self.quest_list:
             self.cursor = (self.cursor + 1) % len(self.quest_list)
+        elif event.key == pygame.K_LEFT:
+            self.filter_index = (self.filter_index - 1) % len(_FILTER_TABS)
+            self.cursor = 0
+            self._rebuild_list()
+        elif event.key == pygame.K_RIGHT:
+            self.filter_index = (self.filter_index + 1) % len(_FILTER_TABS)
+            self.cursor = 0
+            self._rebuild_list()
 
     def update(self, dt):
         pass
@@ -54,18 +79,36 @@ class QuestLogState:
 
         # Title
         title = self.font_title.render("QUEST LOG", True, (255, 255, 255))
-        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 20))
+        screen.blit(title, (SCREEN_WIDTH // 2 - title.get_width() // 2, 12))
+
+        # Tab bar
+        tab_y = 46
+        tab_x = 30
+        for i, tab_name in enumerate(_FILTER_TABS):
+            is_active = i == self.filter_index
+            color = (255, 255, 255) if is_active else (120, 120, 120)
+            tab_surf = self.font_tab.render(tab_name, True, color)
+            screen.blit(tab_surf, (tab_x, tab_y))
+            if is_active:
+                underline_y = tab_y + tab_surf.get_height() + 1
+                pygame.draw.line(screen, color, (tab_x, underline_y),
+                                 (tab_x + tab_surf.get_width(), underline_y), 2)
+            tab_x += tab_surf.get_width() + 20
 
         if not self.quest_list:
-            empty = self.font_quest.render("No quests yet. Talk to NPCs!", True, (160, 160, 160))
-            screen.blit(empty, (SCREEN_WIDTH // 2 - empty.get_width() // 2, 80))
-            hint = self.font_hint.render("[ESC] Close", True, (120, 120, 120))
+            tab = _FILTER_TABS[self.filter_index]
+            msg = _EMPTY_MESSAGES.get(tab, "No quests.")
+            empty = self.font_quest.render(msg, True, (160, 160, 160))
+            screen.blit(empty, (SCREEN_WIDTH // 2 - empty.get_width() // 2, 100))
+            hint = self.font_hint.render(
+                "[LEFT/RIGHT] Filter   [ESC] Close", True, (120, 120, 120)
+            )
             screen.blit(hint, (SCREEN_WIDTH // 2 - hint.get_width() // 2, SCREEN_HEIGHT - 30))
             return
 
         # Quest list on left side
         list_x = 30
-        list_y = 60
+        list_y = 76
         row_h = 28
 
         for i, (qid, state) in enumerate(self.quest_list):
@@ -102,7 +145,7 @@ class QuestLogState:
             qid, state = self.quest_list[self.cursor]
             qdef = QUEST_REGISTRY[qid]
             detail_x = 310
-            detail_y = 60
+            detail_y = 76
 
             # Quest name
             name_surf = self.font_quest.render(qdef.name, True, (255, 255, 255))
@@ -192,7 +235,7 @@ class QuestLogState:
 
         # Controls hint
         hint = self.font_hint.render(
-            "[UP/DOWN] Navigate   [ESC] Close", True, (120, 120, 120)
+            "[LEFT/RIGHT] Filter   [UP/DOWN] Navigate   [ESC] Close", True, (120, 120, 120)
         )
         screen.blit(hint, (SCREEN_WIDTH // 2 - hint.get_width() // 2, SCREEN_HEIGHT - 30))
 
